@@ -1,0 +1,351 @@
+#include "rdcp-scheduler.h"
+#include "rdcp-incoming.h"
+#include "lora.h"
+#include "hal.h"
+#include "serial.h"
+#include "persistence.h"
+#include "rdcp-common.h"
+#include "rdcp-relay.h"
+#include "rdcp-scheduler.h"
+#include "rdcp-send.h"
+
+extern lora_message current_lora_message;
+extern rdcp_message rdcp_msg_in;
+extern da_config CFG;
+
+txqueue txq[NUMCHANNELS];
+txaheadqueue txaq[NUMCHANNELS];
+
+int tx_ongoing[NUMCHANNELS] = {-1, -1};      // Index of TXQ entry currently up for transmission
+int64_t tx_process_start[NUMCHANNELS] = {0, 0};
+int retransmission_count[NUMCHANNELS] = {0, 0};
+int64_t last_tx_activity[NUMCHANNELS] = {0, 0};
+
+bool rdcp_txqueue_add(uint8_t channel, uint8_t *data, uint8_t len, bool important, bool force_tx, uint8_t callback_selector, int64_t forced_time)
+{
+    if (txq[channel].num_entries == MAX_TXQUEUE_ENTRIES)
+    {
+      serial_writeln("WARNING: rdcp_txqueue_add() failed -- TX Queue is full");
+      return false;
+    }
+  
+    int64_t now = my_millis();
+  
+    for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+    {
+      if (txq[channel].entries[i].waiting == false)
+      {
+        txq[channel].num_entries += 1;
+        txq[channel].entries[i].waiting = true;
+        txq[channel].entries[i].in_process = false;
+        txq[channel].entries[i].timeslot_duration = rdcp_get_timeslot_duration(channel, data);
+        txq[channel].entries[i].callback_selector = callback_selector;
+        txq[channel].entries[i].force_tx = force_tx;
+        txq[channel].entries[i].important = important;
+        if (forced_time == 0)
+        { /* No time given, schedule as early as possible when channel is free */
+          txq[channel].entries[i].originally_scheduled_time = rdcp_get_channel_free_estimation(channel);
+          /* Don't schedule into the past if channel is currently assumed free. */
+          if (txq[channel].entries[i].originally_scheduled_time < now) txq[channel].entries[i].originally_scheduled_time = now;
+        }
+        else if (forced_time < 0)
+        { /* Negative relative time => append */
+          int64_t highest_timestamp = rdcp_get_channel_free_estimation(channel);
+          for (int j=0; j < MAX_TXQUEUE_ENTRIES; j++)
+          {
+            if (txq[channel].entries[j].waiting)
+            {
+              if (txq[channel].entries[j].currently_scheduled_time > highest_timestamp)
+                highest_timestamp = txq[channel].entries[j].currently_scheduled_time;
+            }
+          }
+          // Add the (negative) relative time to last entry's time
+          forced_time = highest_timestamp - forced_time;
+          txq[channel].entries[i].originally_scheduled_time = forced_time;
+        }
+        else 
+        { /* Positive absolute time */
+          txq[channel].entries[i].originally_scheduled_time = forced_time;
+        }
+        txq[channel].entries[i].currently_scheduled_time = txq[channel].entries[i].originally_scheduled_time;
+        txq[channel].entries[i].num_of_reschedules = 0;
+        txq[channel].entries[i].payload_length = len;
+        txq[channel].entries[i].in_process = false;
+        txq[channel].entries[i].cad_retry = 0;
+        for (int j=0; j < len; j++) txq[channel].entries[i].payload[j] = data[j];
+  
+        char buf[256];
+        snprintf(buf, 256, "INFO: Outgoing message scheduled -> TXQ%di %d, len %d, TSd %" PRId64 ", @%" PRId64, 
+            channel == CHANNEL433 ? 4 : 8, i, len, txq[channel].entries[i].timeslot_duration, txq[channel].entries[i].currently_scheduled_time);
+        serial_writeln(buf);
+  
+        rdcp_dump_txq(channel);
+
+        return true; // found free spot and added entry, exit loop here.
+      }
+    }
+  
+    return false;
+}
+
+bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
+{
+    char info[256];
+    int64_t now = my_millis();
+    int64_t delta = rdcp_get_channel_free_estimation(channel) - now;
+    if (delta < 0) delta = 0; // do not schedule back in time
+    bool dropped = false;
+  
+    if (offset != 0) delta = offset;
+    /* 
+        We might return false here if delta == 0 as it would not 
+        actually re-schedule anything.
+        However, using this function may still drop less important
+        messages to keep the TQX short, which may actually be
+        desired when the channel is somewhat busy. 
+    */
+  
+    for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+    {
+      if (txq[channel].entries[i].waiting)
+      {
+        if (txq[channel].entries[i].in_process) continue;
+        if (txq[channel].entries[i].force_tx) continue;
+  
+        txq[channel].entries[i].num_of_reschedules++;
+        txq[channel].entries[i].currently_scheduled_time += delta;
+
+        snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled by %" PRId64 " ms",
+          channel == CHANNEL433 ? 4 : 8, i, delta);
+        serial_writeln(info);
+  
+        if (txq[channel].entries[i].currently_scheduled_time < now)
+        {
+          txq[channel].entries[i].currently_scheduled_time = now + offset;
+        }
+  
+        if (txq[channel].entries[i].important) continue;
+        if ( (txq[channel].entries[i].num_of_reschedules > 20) ||
+             (txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time > 300 * 1000) )
+        {
+          txq[channel].entries[i].waiting = false; // drop message due to excessive delay when trying to send
+          txq[channel].entries[i].payload_length = 0;
+          txq[channel].entries[i].in_process = false;
+          txq[channel].num_entries--;
+          dropped = true;
+        }
+      }
+    }
+
+    rdcp_dump_txq(channel);
+
+    return dropped;
+}
+
+bool rdcp_txqueue_loop(void)
+{
+    int64_t now = my_millis();
+    bool result = false;
+
+    for (int channel=0; channel <= 1; channel++)
+    {
+        /* Skip if any transmission is already ongoing */
+        if (tx_ongoing[channel] != -1)
+        {
+          if (now - last_tx_activity[channel] > 180000)
+          {
+            serial_writeln("WARNING: TX Activity Timeout, restarting TXQ processing");
+            txq[channel].entries[tx_ongoing[channel]].in_process = false;
+            txq[channel].entries[tx_ongoing[channel]].cad_retry = 0;
+            tx_ongoing[channel] = -1;
+            setup_radio();
+          }
+          return false;
+        }
+  
+        last_tx_activity[channel] = now;
+  
+        /* Feed fresh messages into our queue */
+        rdcp_txaheadqueue_loop();
+  
+        for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+        {
+            if (txq[channel].entries[i].waiting)
+            {
+                if (txq[channel].entries[i].currently_scheduled_time <= now)
+                {
+                    if (tx_ongoing[channel] == -1)
+                    { // found a first message to start send-processing now
+                        tx_ongoing[channel] = i;
+                    }
+                    else
+                    { // already had found a suitable message, but maybe chose another one
+                        if (txq[channel].entries[i].currently_scheduled_time < txq[channel].entries[tx_ongoing[channel]].currently_scheduled_time) 
+                            tx_ongoing[channel] = i; // try to keep the order
+                        if (txq[channel].entries[i].force_tx) tx_ongoing[channel] = i; // but prioritize hard-scheduled messages even more
+                    }
+                }
+            }
+        }
+        if (tx_ongoing[channel] != -1) { result = true; } else { continue; }
+  
+        txq[channel].entries[tx_ongoing[channel]].in_process = true;
+        tx_process_start[channel] = now;
+  
+        char buf[256];
+        snprintf(buf, 256, "INFO: Outgoing message up for send-processing -> TXQ%di %d, len %d, TSd %" PRId64 ", @%" PRId64 ", =%" PRId64,
+             channel == CHANNEL433 ? 4:8, tx_ongoing[channel], txq[channel].entries[tx_ongoing[channel]].payload_length, 
+             txq[channel].entries[tx_ongoing[channel]].timeslot_duration, 
+             txq[channel].entries[tx_ongoing[channel]].currently_scheduled_time, now);
+        serial_writeln(buf);
+  
+        if (txq[channel].entries[tx_ongoing[channel]].force_tx == false)
+        {
+            rdcp_send_message_cad(channel);
+        }
+        else
+        {
+            rdcp_send_message_force(channel);
+        }
+    }
+
+    return result;
+}
+
+bool rdcp_txaheadqueue_add(uint8_t channel, uint8_t *data, uint8_t len, bool important, bool force_tx, uint8_t callback_selector, int64_t delay_in_ms)
+{
+    if (txaq[channel].num_entries == MAX_TXAHEADQUEUE_ENTRIES)
+    {
+      serial_writeln("WARNING: rdcp_txaheadqueue_add() failed -- TX Ahead Queue is full");
+      return false;
+    }
+  
+    int64_t now = my_millis();
+  
+    for (int i=0; i < MAX_TXAHEADQUEUE_ENTRIES; i++)
+    {
+      if (txaq[channel].entries[i].waiting == false)
+      {
+        txaq[channel].num_entries += 1;
+        txaq[channel].entries[i].waiting = true;
+        txaq[channel].entries[i].callback_selector = callback_selector;
+        txaq[channel].entries[i].force_tx = force_tx;
+        txaq[channel].entries[i].important = important;
+        txaq[channel].entries[i].scheduled_time = now + delay_in_ms;
+        txaq[channel].entries[i].payload_length = len;
+        for (int j=0; j < len; j++) txaq[channel].entries[i].payload[j] = data[j];
+  
+        char buf[256];
+        snprintf(buf, 256, "INFO: Delayed message scheduled -> TXAQ%di %d, len %d, @%" PRId64, channel == CHANNEL433 ? 4 : 8, i, len, txaq[channel].entries[i].scheduled_time);
+        serial_writeln(buf);
+  
+        return true; // found free spot and added entry, exit loop here.
+      }
+    }
+  
+    return false;
+}
+
+bool rdcp_txaheadqueue_loop(void)
+{
+    for (int channel = 0; channel <= 1; channel++)
+    {
+        if (txq[channel].num_entries == MAX_TXQUEUE_ENTRIES) continue;
+  
+        int64_t now = my_millis();
+  
+        for (int i=0; i < MAX_TXAHEADQUEUE_ENTRIES; i++)
+        {
+            if ((txaq[channel].entries[i].waiting == true) && (txaq[channel].entries[i].scheduled_time <= now))
+            {
+                if (rdcp_txqueue_add(channel, txaq[channel].entries[i].payload, txaq[channel].entries[i].payload_length, 
+                        txaq[channel].entries[i].important, txaq[channel].entries[i].force_tx, 
+                        txaq[channel].entries[i].callback_selector, txaq[channel].entries[i].scheduled_time) == true)
+                {
+                    txaq[channel].entries[i].waiting = false;
+                    txaq[channel].num_entries--;
+                    return true;
+                }
+                else
+                { // Moving to TXQ failed, probably full. Try again next time.
+                     continue; 
+                }
+            }
+        }
+    }
+  
+    return false;
+}
+
+int get_num_txq_entries(uint8_t channel)
+{
+    return txq[channel].num_entries;
+}
+
+int get_num_txaq_entries(uint8_t channel)
+{
+    return txaq[channel].num_entries;
+}
+
+void rdcp_dump_txq(uint8_t channel)
+{
+  int64_t now = my_millis();
+  char info[256];
+  snprintf(info, 256, "INFO: Listing TQX%d @ %" PRId64 " ms", channel == CHANNEL433 ? 4 : 8, now);
+  serial_writeln(info);
+
+  for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+  {
+    if (txq[channel].entries[i].waiting)
+    {
+      int64_t timediff = txq[channel].entries[i].currently_scheduled_time - now;
+      int32_t td = (int32_t) timediff;
+
+      snprintf(info, 256, "INFO: TQX%d i%02d t%03.3fms l%03d o%" PRId64 "ms c%" PRId64 "ms d%" PRId64 "ms r%" PRId64 "ms",
+        channel == CHANNEL433 ? 4 : 8, 
+        i, 
+        td / 1000.0, 
+        txq[channel].entries[i].payload_length, 
+        txq[channel].entries[i].originally_scheduled_time, 
+        txq[channel].entries[i].currently_scheduled_time, 
+        txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time, 
+        timediff);
+      serial_writeln(info);
+    }
+  }
+
+  int64_t cfest = rdcp_get_channel_free_estimation(channel);
+  int32_t relcfest32 = (int32_t) (cfest-now);  
+  snprintf(info, 256, "INFO: Listing TQX%d ends, CFEst r%03.3f @%" PRId64 "ms", 
+    channel == CHANNEL433 ? 4 : 8,
+    (relcfest32) / 1000.0,
+    cfest);
+  serial_writeln(info);
+
+  return;
+}
+
+void rdcp_reschedule_on_busy_channel(uint8_t channel)
+{
+  for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++) txq[channel].entries[i].cad_retry = 0;
+  if (tx_ongoing[channel] != -1)
+  {
+      serial_writeln("INFO: Postponing current transmission due to RDCP Message reception");
+      txq[channel].entries[tx_ongoing[channel]].in_process = false;
+      tx_ongoing[channel] = -1;
+  }
+
+  int64_t timediff = rdcp_get_channel_free_estimation(channel) - my_millis(); 
+  if (timediff > 0)
+  {
+    char info[256];
+    snprintf(info, 256, "INFO: Rescheduling CHANNEL%d by %d ms due to timediff CFEst-now", channel == CHANNEL433 ? 433:868, timediff);
+    serial_writeln(info);
+
+    rdcp_txqueue_reschedule(channel, timediff);
+  }
+
+  return;
+}
+
+ /* EOF */
