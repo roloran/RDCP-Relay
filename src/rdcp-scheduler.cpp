@@ -92,7 +92,9 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
 {
     char info[256];
     int64_t now = my_millis();
-    int64_t delta = rdcp_get_channel_free_estimation(channel) - now;
+    int64_t cfest = rdcp_get_channel_free_estimation(channel);
+    int64_t delta = cfest - now;
+    int64_t rescheduled_by = 0;
     if (delta < 0) delta = 0; // do not schedule back in time
     bool dropped = false;
   
@@ -113,14 +115,28 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
         if (txq[channel].entries[i].force_tx) continue;
   
         txq[channel].entries[i].num_of_reschedules++;
-        txq[channel].entries[i].currently_scheduled_time += delta;
+        if (delta >= 0)
+        {
+          txq[channel].entries[i].currently_scheduled_time += delta;
+          rescheduled_by = delta;
+        }
+        else 
+        {
+          delta = -1 * delta; 
+          if (txq[channel].entries[i].currently_scheduled_time < (cfest + delta + i))
+          {
+            txq[channel].entries[i].currently_scheduled_time = cfest + delta + i;
+            rescheduled_by = cfest + delta + i - now; 
+          }
+        }
 
-        snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled by %" PRId64 " ms",
-          channel == CHANNEL433 ? 4 : 8, i, delta);
+        snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled by %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
+          channel == CHANNEL433 ? 4 : 8, i, rescheduled_by, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
         serial_writeln(info);
   
         if (txq[channel].entries[i].currently_scheduled_time < now)
         {
+          if (offset < 0) offset = -1 * offset;
           txq[channel].entries[i].currently_scheduled_time = now + offset;
         }
   
@@ -291,7 +307,7 @@ void rdcp_dump_txq(uint8_t channel)
 {
   int64_t now = my_millis();
   char info[256];
-  snprintf(info, 256, "INFO: Listing TQX%d @ %" PRId64 " ms", channel == CHANNEL433 ? 4 : 8, now);
+  snprintf(info, 256, "INFO: Listing TXQ%d @ %" PRId64 " ms", channel == CHANNEL433 ? 4 : 8, now);
   serial_writeln(info);
 
   for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
@@ -301,7 +317,7 @@ void rdcp_dump_txq(uint8_t channel)
       int64_t timediff = txq[channel].entries[i].currently_scheduled_time - now;
       int32_t td = (int32_t) timediff;
 
-      snprintf(info, 256, "INFO: TQX%d i%02d t%03.3fms l%03d o%" PRId64 "ms c%" PRId64 "ms d%" PRId64 "ms r%" PRId64 "ms",
+      snprintf(info, 256, "INFO: TXQ%d i%02d t%03.3fms l%03d o%" PRId64 "ms c%" PRId64 "ms d%" PRId64 "ms r%" PRId64 "ms",
         channel == CHANNEL433 ? 4 : 8, 
         i, 
         td / 1000.0, 
@@ -316,7 +332,7 @@ void rdcp_dump_txq(uint8_t channel)
 
   int64_t cfest = rdcp_get_channel_free_estimation(channel);
   int32_t relcfest32 = (int32_t) (cfest-now);  
-  snprintf(info, 256, "INFO: Listing TQX%d ends, CFEst r%03.3f @%" PRId64 "ms", 
+  snprintf(info, 256, "INFO: Listing TXQ%d ends, CFEst r%03.3f @%" PRId64 "ms", 
     channel == CHANNEL433 ? 4 : 8,
     (relcfest32) / 1000.0,
     cfest);
