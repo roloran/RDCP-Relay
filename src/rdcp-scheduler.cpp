@@ -112,8 +112,9 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
     int64_t next_timestamp = cfest;
     for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
     {
-        if (txq[channel].entries[i].in_process) continue;
-        if (txq[channel].entries[i].force_tx) continue;
+        if (!txq[channel].entries[i].waiting)      continue; // only waiting entries are relevant
+        if (txq[channel].entries[i].in_process)    continue; // skip if currently in process
+        if (txq[channel].entries[i].force_tx)      continue; // skip if it has a forced time
         if (txq[channel].entries[i].currently_scheduled_time  < next_timestamp) 
           next_timestamp = txq[channel].entries[i].currently_scheduled_time;
     }
@@ -127,10 +128,12 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
         if (txq[channel].entries[i].force_tx) continue;
   
         txq[channel].entries[i].num_of_reschedules++;
+        int reschedule_mode = 0;
         if (delta >= 0)
         {
           txq[channel].entries[i].currently_scheduled_time += delta;
           rescheduled_by = delta;
+          reschedule_mode = 1;
         }
         else 
         {
@@ -139,17 +142,21 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
           {
             txq[channel].entries[i].currently_scheduled_time += maximum_diff_to_cfest + delta;
             rescheduled_by = maximum_diff_to_cfest + delta; 
+            reschedule_mode = 2;
           }
         }
 
-        snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled by %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
-          channel == CHANNEL433 ? 4 : 8, i, rescheduled_by, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
+        snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled (mode %d) by %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
+          channel == CHANNEL433 ? 4 : 8, i, reschedule_mode, rescheduled_by, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
         serial_writeln(info);
   
         if (txq[channel].entries[i].currently_scheduled_time < now)
         {
           if (offset < 0) offset = -1 * offset;
           txq[channel].entries[i].currently_scheduled_time = now + offset;
+          snprintf(info, 256, "INFO: TXQ%d entry %d re-scheduled (again) to %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
+            channel == CHANNEL433 ? 4 : 8, i, txq[channel].entries[i].currently_scheduled_time, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
+          serial_writeln(info); 
         }
   
         if (txq[channel].entries[i].important) continue;

@@ -378,7 +378,7 @@ void rdcp_periodic_kickstart(void)
         }
 
         char info[256];
-        snprintf(info, 256, "INFO: Starting periodic868 chain with index %d", starter);
+        snprintf(info, 256, "INFO: Starting periodic868 chain with index %d for min_refnr %04X", starter, min_refnr);
         serial_writeln(info);
         /* Destination not relevant for this chain */
         rdcp_chain_starter(TX_CALLBACK_PERIODIC868, starter, 0xFFFF, min_refnr);
