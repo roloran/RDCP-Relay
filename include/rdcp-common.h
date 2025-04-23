@@ -100,6 +100,16 @@ struct rdcp_dup_table {
 void rdcp_reset_duplicate_message_table(void);
 
 /**
+ * Restore a persisted duplicate table
+ */
+void rdcp_duplicate_table_restore(void);
+
+/**
+ * Persist the current duplicate table
+ */
+void rdcp_duplicate_table_persist(void);
+
+/**
   * Checks whether an RDCP Message with Origin and SequenceNumber given as parameters
   * should be treated as duplicate (returns true) or new (returns false).
   * @param origin RDCP Origin address of the RDCP Message to check for duplicate 

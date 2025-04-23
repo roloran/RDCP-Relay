@@ -2,12 +2,15 @@
 #include "lora.h"
 #include "hal.h"
 #include "serial.h"
+#include "FFat.h"
 
 rdcp_message rdcp_msg_in;
 int64_t CFEst[NUMCHANNELS] = {0, 0}; 
 extern da_config CFG; 
 extern lora_message current_lora_message;
 struct rdcp_dup_table dupe_table;              // One global RDCP Message Duplicate Table
+
+#define FILENAME_DUPETABLE "/dupetable"
 
 int64_t rdcp_get_channel_free_estimation(uint8_t channel)
 {
@@ -194,6 +197,27 @@ void rdcp_reset_duplicate_message_table()
     dupe_table.tableentry[i].sequence_number = 0;
     dupe_table.tableentry[i].last_seen = 0;
   }
+  return;
+}
+
+void rdcp_duplicate_table_restore(void)
+{
+  serial_writeln("INFO: Restoring dupe table");
+  File f = FFat.open(FILENAME_DUPETABLE, FILE_READ);
+  if (!f) return;
+  f.read((uint8_t *) &dupe_table, sizeof(dupe_table));
+  f.close();
+  return;
+}
+
+void rdcp_duplicate_table_persist(void)
+{
+  serial_writeln("INFO: Persisting dupe table");
+  FFat.remove(FILENAME_DUPETABLE);
+  File f = FFat.open(FILENAME_DUPETABLE, FILE_WRITE);
+  if (!f) return;
+  f.write((uint8_t *) &dupe_table, sizeof(dupe_table));
+  f.close();
   return;
 }
 

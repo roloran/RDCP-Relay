@@ -203,7 +203,7 @@ void rdcp_handle_incoming_lora_message(void)
                 rdcp_handle_command();
             }    
         }
-        else if (currently_in_fetch_mode)
+        else if ((currently_in_fetch_mode) && (current_lora_message.channel == CHANNEL433))
         {
             if ((rdcp_msg_in.header.message_type == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT) || 
                 (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_SIGNATURE))

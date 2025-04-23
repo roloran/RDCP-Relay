@@ -21,15 +21,16 @@ SET_LOOP_TASK_STACK_SIZE(16*1024); // default of 8 kb is not enough
 void setup() 
 {
   delay(100);
-  setup_serial();              // Set up the Serial/UART connection
+  setup_serial();                 // Set up the Serial/UART connection
   delay(900);
-  setup_lora_hardware();       // Set up the SPI-connected SX126x chips
-  setup_radio();               // Initialize RadioLib
-  setup_persistence();         // Set up FFat persistence
-  persistence_replay_serial(); // Set up device configuration based on stored commands
-  rdcp_memory_restore();       // Load persisted memories
-  serial_banner();             // Show current device configuration over Serial
-  serial_writeln("READY");     // Signal LoRa modem readiness
+  setup_lora_hardware();          // Set up the SPI-connected SX126x chips
+  setup_radio();                  // Initialize RadioLib
+  setup_persistence();            // Set up FFat persistence
+  persistence_replay_serial();    // Set up device configuration based on stored commands
+  rdcp_memory_restore();          // Load persisted memories
+  rdcp_duplicate_table_restore(); // Load persisted duplicate table entries
+  serial_banner();                // Show current device configuration over Serial
+  serial_writeln("READY");        // Signal LoRa modem readiness
 }
 
 /**
@@ -108,6 +109,7 @@ void loop()
     {
       minute_counter = 0;
       rdcp_memory_persist(); // Store current memories in case of power loss 
+      rdcp_duplicate_table_persist();
 
       free_heap = ESP.getFreeHeap();
       min_free_heap = ESP.getMinFreeHeap();
