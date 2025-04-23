@@ -137,6 +137,10 @@ void rdcp_send_ack_unsigned(uint16_t origin, uint16_t destination, uint16_t seqn
 {
     struct rdcp_message rm;
     uint8_t data[256];
+    char info[256];
+
+    snprintf(info, 256, "INFO: Sending DA ACK to %04X for SeqNr %04X", destination, seqnr);
+    serial_writeln(info);
   
     rm.header.origin = origin;
     rm.header.sender = origin;

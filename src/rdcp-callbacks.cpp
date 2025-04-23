@@ -7,11 +7,13 @@
 #include "persistence.h"
 #include "rdcp-scheduler.h"
 #include "Base64ren.h"
+#include "rdcp-neighbors.h"
 
 callback_chain CC[NUM_TX_CALLBACKS];
 extern da_config CFG;
 extern rdcp_memory_table mem;
 extern int64_t last_periodic_chain_finish;
+extern neighbor_table_entry neighbors[MAX_NEIGHBORS];
 
 /**
  * Send a "delivery receipt" RDCP Message to the given destination. 
@@ -301,7 +303,7 @@ void rdcp_chain_callback(uint8_t callback_type, bool has_timeout)
         {
             if (
                 (mem.entries[(i + CC[TX_CALLBACK_PERIODIC868].last_mem_idx) % MAX_STORED_MSGS].timestamp_added >= my_millis() - CFG.max_periodic868_age) &&
-                (mem.entries[(i + CC[TX_CALLBACK_PERIODIC868].last_mem_idx) % MAX_STORED_MSGS].reference_number > 0) &&
+                (mem.entries[(i + CC[TX_CALLBACK_PERIODIC868].last_mem_idx) % MAX_STORED_MSGS].reference_number >= CC[TX_CALLBACK_PERIODIC868].refnr) &&
                 (mem.entries[(i + CC[TX_CALLBACK_PERIODIC868].last_mem_idx) % MAX_STORED_MSGS].used_in_periodic868 == false)
                )
                {              
@@ -333,26 +335,53 @@ void rdcp_chain_callback(uint8_t callback_type, bool has_timeout)
 
 void rdcp_periodic_kickstart(void)
 {
+    int64_t now = my_millis();
     if ((CFG.periodic_enabled) && 
         (!CC[TX_CALLBACK_PERIODIC868].in_use) && 
-        (my_millis() > last_periodic_chain_finish + CFG.periodic_interval))
+        (now > last_periodic_chain_finish + CFG.periodic_interval) &&
+        (now > rdcp_get_channel_free_estimation(CHANNEL868)) && 
+        (get_num_txq_entries(CHANNEL868) < 2))
     {
         int first = mem.idx_first;
         int starter = -1;
+
+        /* Determine minimum OA RefNr based on MG requests within Heartbeats */
+        uint16_t min_refnr = 0xFFFF;
+        for (int i=0; i < MAX_NEIGHBORS; i++)
+        {
+            if ((neighbors[i].sender > 0x02FF) && 
+                (neighbors[i].heartbeat) && 
+                (neighbors[i].timestamp > now - 60 * MINUTES_TO_MILLISECONDS) &&
+                (neighbors[i].explicit_refnr)) 
+                {
+                    if (neighbors[i].latest_refnr < min_refnr) min_refnr = neighbors[i].latest_refnr + 1;
+                }
+        }
+        if (min_refnr == 0xFFFF)
+        {
+            serial_writeln("INFO: Periodic868 chain has no requested messages");
+            last_periodic_chain_finish = now;
+            return;
+        }
+
         if (first != -1)
         {
             for (int i=0; i < MAX_STORED_MSGS; i++)
             {
-                if (mem.entries[(i + first) % MAX_STORED_MSGS].timestamp_added >= my_millis() - CFG.max_periodic868_age)
+                if ((mem.entries[(i + first) % MAX_STORED_MSGS].timestamp_added >= now - CFG.max_periodic868_age) && 
+                    (mem.entries[(i + first) % MAX_STORED_MSGS].reference_number >= min_refnr))
                 {
                     starter = i;
                     break; // find first only
                 }
             }
         }
-        serial_writeln("WARNING: Starting periodic868 chain"); // DEBUG
-        /* Destination and refnr parameters are not relevant for this chain */
-        rdcp_chain_starter(TX_CALLBACK_PERIODIC868, starter, 0xFFFF, 0xFFFF);
+
+        char info[256];
+        snprintf(info, 256, "INFO: Starting periodic868 chain with index %d", starter);
+        serial_writeln(info);
+        /* Destination not relevant for this chain */
+        rdcp_chain_starter(TX_CALLBACK_PERIODIC868, starter, 0xFFFF, min_refnr);
     }
     return;
 }

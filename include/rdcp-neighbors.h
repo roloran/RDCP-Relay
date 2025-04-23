@@ -15,7 +15,7 @@
  * @param timestamp Timestamp of when LoRa packet was received 
  * @param heartbeat true if explicit RDCP Heartbeat, false otherwise 
  */
-void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, double snr, int64_t timestamp, bool heartbeat);
+void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, double snr, int64_t timestamp, bool heartbeat, bool explicit_refnr, uint16_t latest_refnr, uint16_t roamingrec);
 
 /**
  * List the current neighbor table on Serial. 
@@ -28,8 +28,11 @@ struct neighbor_table_entry {
     double rssi       = 0.0;
     double snr        = 0.0;
     int64_t timestamp = 0;
-    bool heartbeat    = false; // has sent an explitit Heartbeat  
-    bool counted      = false; // has been counted for DA Status Response
+    bool heartbeat    = false;      // has sent an explitit Heartbeat  
+    bool counted      = false;      // has been counted for DA Status Response
+    bool explicit_refnr = false;    // has sent an explicit latest OA RefNr
+    uint16_t latest_refnr = 0x0000; // OA RefNr reported by MG
+    uint16_t roamingrec = 0x0000;   // Roaming Recommendation reported by MG
 };
 
 #endif 

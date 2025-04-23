@@ -94,11 +94,24 @@ void rdcp_handle_incoming_lora_message(void)
     /* On the 868 MHz channel, we have to process MG HEARTBEAT messages (always dupes). */
     /* We also register Sender-based RSSI and SNR values for any RDCP Messages. */
     bool heartbeat = false;
+    bool explicit_refnr = false;
+    uint16_t latest_refnr = 0x0000;
+    uint16_t roamingrec = 0x0000;
     if ((current_lora_message.channel == CHANNEL868) && 
-        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT)) heartbeat = true;
+        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT))
+    { 
+        heartbeat = true;
+        if (rdcp_msg_in.header.rdcp_payload_length == 4)
+        {
+            explicit_refnr = true; 
+            latest_refnr = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
+            roamingrec   = rdcp_msg_in.payload.data[2] + 256 * rdcp_msg_in.payload.data[3];
+        }
+    }
     rdcp_neighbor_register_rx(current_lora_message.channel, rdcp_msg_in.header.sender, 
                               current_lora_message.rssi, current_lora_message.snr, 
-                              current_lora_message.timestamp, heartbeat);
+                              current_lora_message.timestamp, heartbeat, 
+                              explicit_refnr, latest_refnr, roamingrec);
 
     /* Only perform the following actions if the message is not a duplicate */
     if (!duplicate)

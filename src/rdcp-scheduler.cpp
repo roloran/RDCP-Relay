@@ -106,6 +106,18 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
         messages to keep the TQX short, which may actually be
         desired when the channel is somewhat busy. 
     */
+
+    /* Look for the 'currently scheduled' timestamp of the earliest 
+       TXQ entry to be sent before channel becomes free */
+    int64_t next_timestamp = cfest;
+    for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+    {
+        if (txq[channel].entries[i].in_process) continue;
+        if (txq[channel].entries[i].force_tx) continue;
+        if (txq[channel].entries[i].currently_scheduled_time  < next_timestamp) 
+          next_timestamp = txq[channel].entries[i].currently_scheduled_time;
+    }
+    int64_t maximum_diff_to_cfest = cfest - next_timestamp;
   
     for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
     {
@@ -123,10 +135,10 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
         else 
         {
           delta = -1 * delta; 
-          if (txq[channel].entries[i].currently_scheduled_time < (cfest + delta + i))
+          if (txq[channel].entries[i].currently_scheduled_time < (cfest + delta))
           {
-            txq[channel].entries[i].currently_scheduled_time = cfest + delta + i;
-            rescheduled_by = cfest + delta + i - now; 
+            txq[channel].entries[i].currently_scheduled_time += maximum_diff_to_cfest + delta;
+            rescheduled_by = maximum_diff_to_cfest + delta; 
           }
         }
 
