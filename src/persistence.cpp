@@ -1,7 +1,12 @@
 #include "persistence.h"
 #include "serial.h"
 
+#ifdef ROLORAN_USE_FFAT
 #include <FFat.h>
+#else 
+#include "FS.h"
+#include <LittleFS.h>
+#endif
 
 #define FILENAME_SERIAL_REPLAY "/config.txt"
 #define FILENAME_PREFIX_SEQNR "/seqnr_"
@@ -15,15 +20,23 @@ bool hasStorage(void)
 
 void setup_persistence(void)
 {
+#ifdef ROLORAN_USE_FFAT
   // FFat.format(); // unbrick device :-)
   if(FFat.begin(true)) hasFFat = true;
+#else 
+  if(LittleFS.begin(true, "/littlefs", 10U, "ffat")) hasFFat = true;
+#endif
   return;
 }
 
 void persist_serial_command_for_replay(String s)
 {
   if (!hasFFat) return;
+#ifdef ROLORAN_USE_FFAT
   File f = FFat.open(FILENAME_SERIAL_REPLAY, FILE_APPEND);
+#else 
+  File f = LittleFS.open(FILENAME_SERIAL_REPLAY, FILE_APPEND);
+#endif
   if (!f) return;
   char cline[256];
   s.toCharArray(cline, 256);
@@ -35,7 +48,11 @@ void persist_serial_command_for_replay(String s)
 void persistence_replay_serial(void)
 {
   if (!hasFFat) return;
+#ifdef ROLORAN_USE_FFAT
   File f = FFat.open(FILENAME_SERIAL_REPLAY, FILE_READ);
+#else
+  File f = LittleFS.open(FILENAME_SERIAL_REPLAY, FILE_READ);
+#endif
   if (!f) return;
   while (f.available())
   {
@@ -48,7 +65,11 @@ void persistence_replay_serial(void)
 
 void persistence_reset_replay_serial(void)
 {
+#ifdef ROLORAN_USE_FFAT
   if (hasFFat) FFat.remove(FILENAME_SERIAL_REPLAY);
+#else
+  if (hasFFat) LittleFS.remove(FILENAME_SERIAL_REPLAY);
+#endif
   return;
 }
 
@@ -58,7 +79,11 @@ uint16_t get_next_rdcp_sequence_number(uint16_t origin)
   if (!hasFFat) return seq;
   char fn[256];
   snprintf(fn, 256, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
+#ifdef ROLORAN_USE_FFAT
   File f = FFat.open(fn, FILE_READ);
+#else
+  File f = LittleFS.open(fn, FILE_READ);
+#endif
   if (!f)
   {
     serial_writeln("WARNING: Missing sequence number file, starting with defaults");
@@ -84,8 +109,13 @@ uint16_t set_next_rdcp_sequence_number(uint16_t origin, uint16_t seq)
   snprintf(fn, 256, "INFO: Persisting next-up seqnr %u for %04X", seq, origin);
   serial_writeln(fn);
   snprintf(fn, 256, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
+#ifdef ROLORAN_USE_FFAT
   FFat.remove(fn);
   File f = FFat.open(fn, FILE_WRITE);
+#else
+  LittleFS.remove(fn);
+  File f = LittleFS.open(fn, FILE_WRITE);
+#endif
   if (!f) return seq;
   char content[256];
   snprintf(content, 256, "%" PRIu16 "\n", seq);
@@ -101,7 +131,11 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
   bool is_valid = false;
   char filename[64];
   snprintf(filename, 64, "%s.nce", name);
+#ifdef ROLORAN_USE_FFAT
   File f = FFat.open(filename, FILE_READ);
+#else
+  File f = LittleFS.open(filename, FILE_READ);
+#endif
   if (!f)
   {
     is_valid = true; // never seen a nonce for this type before
@@ -119,7 +153,11 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
   }
   if (is_valid)
   {
+#ifdef ROLORAN_USE_FFAT
     f = FFat.open(filename, FILE_WRITE);
+#else
+    f = LittleFS.open(filename, FILE_WRITE);
+#endif
     if (!f) is_valid = false; // cannot persist nonce, don't trust it
     char content[256];
     snprintf(content, 256, "%" PRIu16 "\n", nonce);

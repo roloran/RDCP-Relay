@@ -1,7 +1,11 @@
 #include "rdcp-memory.h"
 #include "serial.h"
 #include "hal.h"
+#ifdef ROLORAN_USE_FFAT
 #include "FFat.h"
+#else
+#include <LittleFS.h>
+#endif
 
 rdcp_memory_table mem;
 extern lora_message current_lora_message;
@@ -126,8 +130,13 @@ void rdcp_memory_dump(void)
 void rdcp_memory_persist(void)
 {
     serial_writeln("INFO: Persisting memories");
+#ifdef ROLORAN_USE_FFAT
     FFat.remove(FILENAME_MEMORIES);
     File f = FFat.open(FILENAME_MEMORIES, FILE_WRITE);
+#else
+    LittleFS.remove(FILENAME_MEMORIES);
+    File f = LittleFS.open(FILENAME_MEMORIES, FILE_WRITE);
+#endif
     if (!f) return;
     f.write((uint8_t *) &mem, sizeof(mem));
     f.close();
@@ -137,7 +146,11 @@ void rdcp_memory_persist(void)
 void rdcp_memory_restore(void)
 {
     serial_writeln("INFO: Restoring memories");
+#ifdef ROLORAN_USE_FFAT
     File f = FFat.open(FILENAME_MEMORIES, FILE_READ);
+#else
+    File f = LittleFS.open(FILENAME_MEMORIES, FILE_READ);
+#endif
     if (!f) return;
     f.read((uint8_t *) &mem, sizeof(mem));
     f.close();

@@ -2,7 +2,11 @@
 #include "lora.h"
 #include "hal.h"
 #include "serial.h"
+#ifdef ROLORAN_USE_FFAT
 #include "FFat.h"
+#else
+#include <LittleFS.h>
+#endif
 
 rdcp_message rdcp_msg_in;
 int64_t CFEst[NUMCHANNELS] = {0, 0}; 
@@ -203,7 +207,11 @@ void rdcp_reset_duplicate_message_table()
 void rdcp_duplicate_table_restore(void)
 {
   serial_writeln("INFO: Restoring dupe table");
+#ifdef ROLORAN_USE_FFAT
   File f = FFat.open(FILENAME_DUPETABLE, FILE_READ);
+#else
+  File f = LittleFS.open(FILENAME_DUPETABLE, FILE_READ);
+#endif
   if (!f) return;
   f.read((uint8_t *) &dupe_table, sizeof(dupe_table));
   f.close();
@@ -213,8 +221,13 @@ void rdcp_duplicate_table_restore(void)
 void rdcp_duplicate_table_persist(void)
 {
   serial_writeln("INFO: Persisting dupe table");
+#ifdef ROLORAN_USE_FFAT
   FFat.remove(FILENAME_DUPETABLE);
   File f = FFat.open(FILENAME_DUPETABLE, FILE_WRITE);
+#else
+  LittleFS.remove(FILENAME_DUPETABLE);
+  File f = LittleFS.open(FILENAME_DUPETABLE, FILE_WRITE);
+#endif
   if (!f) return;
   f.write((uint8_t *) &dupe_table, sizeof(dupe_table));
   f.close();
