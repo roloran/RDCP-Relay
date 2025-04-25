@@ -72,6 +72,7 @@ uint16_t get_next_rdcp_sequence_number(uint16_t origin)
   }
   seq = line.toInt();
   f.close();
+  if (seq == 0) serial_writeln("WARNING: Existing sequence number file yielded 0");
   set_next_rdcp_sequence_number(origin, seq+1);
   return seq;
 }
@@ -83,12 +84,14 @@ uint16_t set_next_rdcp_sequence_number(uint16_t origin, uint16_t seq)
   snprintf(fn, 256, "INFO: Persisting next-up seqnr %u for %04X", seq, origin);
   serial_writeln(fn);
   snprintf(fn, 256, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
+  FFat.remove(fn);
   File f = FFat.open(fn, FILE_WRITE);
   if (!f) return seq;
   char content[256];
   snprintf(content, 256, "%" PRIu16 "\n", seq);
   f.print(content);
   f.close();
+  delay(1);
   return seq;
 }
 

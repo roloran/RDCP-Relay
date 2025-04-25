@@ -22,6 +22,7 @@ bool rdcp_check_has_already_relayed(void);
 void rdcp_schedule_relayed_message(int relay_delay);
 
 struct relay_memory_entry {
+    uint16_t sender = 0x0000;
     uint16_t origin = 0x0000;
     uint16_t seqnr  = 0x0000;
 };
