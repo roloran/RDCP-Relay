@@ -177,10 +177,64 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
     return dropped;
 }
 
+void rdcp_txqueue_compress(void)
+{
+  int64_t now = my_millis();
+
+  for (int channel=0; channel <= 1; channel++)
+  {
+    if (now > rdcp_get_channel_free_estimation(channel) + 2 * MINUTES_TO_MILLISECONDS)
+    { /* Channel is unused for more than two minutes; check whether we have something to send earlier. */
+      bool has_forced_entry = false;
+      int earliest = -1;
+      for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+      {
+        if (txq[channel].entries[i].waiting)
+        { 
+          if ((txq[channel].entries[i].force_tx) || 
+              (txq[channel].entries[i].in_process))
+          { 
+            has_forced_entry = true; 
+          }
+          if ((earliest == -1) || 
+              (txq[channel].entries[i].currently_scheduled_time < txq[channel].entries[earliest].currently_scheduled_time))
+          {
+            earliest = i;
+          }
+        }
+      }
+      if (has_forced_entry) continue; // Skip compression to avoid clash with hard-scheduled messages
+      if (earliest == -1) continue;   // No entry found to send earlier
+
+      int64_t delta = txq[channel].entries[earliest].currently_scheduled_time - now;
+      if (delta > 30 * SECONDS_TO_MILLISECONDS)
+      {
+        for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+        {
+          if (txq[channel].entries[i].waiting)
+          { 
+            if (txq[channel].entries[i].force_tx) { continue; }   // should not happen if we reach this code
+            if (txq[channel].entries[i].in_process) { continue; } // same
+            txq[channel].entries[i].currently_scheduled_time -= delta; 
+            char info[256];
+            snprintf(info, 256, "INFO: Compressed TXQ%d entry %d by moving it %" PRId64 " ms",
+              channel == CHANNEL433 ? 4 : 8, i, delta);
+            serial_writeln(info);
+          }
+        }
+      }
+    }
+  }
+
+  return;
+}
+
 bool rdcp_txqueue_loop(void)
 {
     int64_t now = my_millis();
     bool result = false;
+
+    rdcp_txqueue_compress();
 
     for (int channel=0; channel <= 1; channel++)
     {
