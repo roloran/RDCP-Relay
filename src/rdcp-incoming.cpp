@@ -167,7 +167,21 @@ void rdcp_handle_incoming_lora_message(void)
                     duplicate. While we still may relay it then, we would not forward it on 868 MHz. 
                     Thus, we have to forward in on 868 MHz and to our DA here. 
                 */
-                if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
+                if (rdcp_check_forward_868_relevance())
+                { 
+                    /* 
+                        If the received message is a CIRE sent by an MG, we need to keep the 
+                        868 MHz channel free so the EP has a chance to send its ACK with
+                        priority; thus, consider the channel busy longer. 
+                    */
+                    if ((rdcp_msg_in.header.message_type == RDCP_MSGTYPE_CITIZEN_REPORT) && 
+                        (rdcp_msg_in.header.sender >= 0x0300))
+                    {
+                        rdcp_update_channel_free_estimation(CHANNEL868, rdcp_get_channel_free_estimation(CHANNEL868) + 60 * SECONDS_TO_MILLISECONDS);
+                        rdcp_txqueue_reschedule(CHANNEL868, 0); // re-schedule based on CFEst
+                    }
+                    rdcp_forward_schedule(true); // add a delay
+                }
                 if (rdcp_check_forward_da_relevance()) rdcp_msg_to_da_via_serial();
             }
         }

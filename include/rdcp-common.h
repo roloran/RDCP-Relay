@@ -125,6 +125,20 @@ bool rdcp_check_duplicate_message(uint16_t origin, uint16_t sequence_number);
 int64_t rdcp_get_channel_free_estimation(uint8_t channel);
 
 /**
+ * Set CFEst for a given channel.
+ * @param channel CHANNEL433 or CHANNEL868
+ * @param new_value New CFEst value for channel
+ */
+bool rdcp_set_channel_free_estimation(uint8_t channel, int64_t new_value);
+
+/**
+ * Update CFEst for a given channel (set only if longer busy than previously assumed).
+ * @param channel CHANNEL433 or CHANNEL868
+ * @param new_value New CFEst value for channel
+ */
+bool rdcp_update_channel_free_estimation(uint8_t channel, int64_t new_value);
+
+/**
   * Calculate the airtime (in milliseconds) of sending a LoRa packet with the payload size
   * given as parameter under consideration of the currently used LoRa settings, such as
   * bandwidth, coding rate, and preamble length.
