@@ -135,8 +135,10 @@ void rdcp_handle_incoming_lora_message(void)
                     /* If it is a CIRE, we also have to send an ACK back to the MG */
                     if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_CITIZEN_REPORT)
                     {
-                           rdcp_send_ack_unsigned(CFG.rdcp_address, rdcp_msg_in.header.origin, 
-                                                  rdcp_msg_in.header.sequence_number);
+                        // Re-schedule other entries on 868 MHz so we get the ACK out first 
+                        rdcp_txqueue_reschedule(CHANNEL868, 30 * SECONDS_TO_MILLISECONDS);
+                        rdcp_send_ack_unsigned(CFG.rdcp_address, rdcp_msg_in.header.origin, 
+                                               rdcp_msg_in.header.sequence_number);
                     }
 
                     /* Forward the message on the 433 MHz channel unless we are the destination */
