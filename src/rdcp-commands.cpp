@@ -451,6 +451,7 @@ void rdcp_cmd_maintenance(void)
     {
       serial_writeln("INFO: Starting DA Maintenance mode");
       serial_writeln("DA_MAINTENANCE");
+      enable_bt();
     }
 
     return;

@@ -8,10 +8,13 @@
 #include "rdcp-neighbors.h"
 #include "rdcp-commands.h"
 #include "rdcp-scheduler.h"
+#include "BluetoothSerial.h"
 
 lora_message lorapacket_in_sim;
 extern da_config CFG;
 extern runtime_da_data DART;
+BluetoothSerial SerialBT;
+bool bt_on = false;
 
 void setup_serial(void)
 {
@@ -20,15 +23,38 @@ void setup_serial(void)
   return;
 }
 
+void enable_bt(void)
+{
+  char devicename[128];
+  snprintf(devicename, 128, "RDCP-RL-%04X", CFG.rdcp_address);
+  SerialBT.begin(devicename);
+  SerialBT.setTimeout(10);
+  CFG.bt_enabled = true;
+  bt_on = true;
+  serial_writeln("INFO: Enabling BT access");
+  return;
+}
+
+void disable_bt(void)
+{
+  serial_writeln("INFO: Disabling BT access");
+  SerialBT.end();
+  CFG.bt_enabled = false;
+  bt_on = false;
+  return;
+}
+
 void serial_write(String s, bool use_prefix)
 {
   if (use_prefix == true)
   {
     Serial.print(SERIAL_PREFIX + s);
+    if (CFG.bt_enabled) SerialBT.print(SERIAL_PREFIX + s);
   }
   else
   {
     Serial.print(s);
+    if (CFG.bt_enabled) SerialBT.print(s);
   }
   Serial.flush();
   return;
@@ -58,6 +84,13 @@ void serial_write_base64(char *data, uint8_t len, bool add_newline)
 
 String serial_readln(void)
 {
+  if (CFG.bt_enabled)
+  {
+    if (SerialBT.available()) 
+    {
+      return SerialBT.readString();
+    }
+  }
   return Serial.readString();
 }
 
@@ -65,30 +98,32 @@ void serial_banner(void)
 {
   Serial.println(SERIAL_PREFIX "INFO: Firmware for scenario " FW_SCENARIO ", RDCP " FW_RDCP ", build " FW_VERSION ", " __DATE__ " " __TIME__);
   char buf[LEN];
-  snprintf(buf, LEN, "%sINFO: Device RDCP address    : %04X (relay id %01X, %s)\0", SERIAL_PREFIX, CFG.rdcp_address, CFG.relay_identifier, CFG.name); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP OA relays  : %01X %01X %01X\0",           SERIAL_PREFIX, CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP CIRE relays: %01X %01X %01X\0",           SERIAL_PREFIX, CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]); Serial.println(buf);
-  snprintf(buf, LEN, "%SINFO: Device TS7Relay1 value : %02X",                       SERIAL_PREFIX, CFG.ts7relay1); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP Fetch from : %04X\0",                     SERIAL_PREFIX, CFG.neighbor_for_fetch); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa frequency  : %.3f MHz, %.3f MHz\0",       SERIAL_PREFIX, CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa bandwidth  : %3.0f kHz, %3.0f kHz\0",     SERIAL_PREFIX, CFG.lora[CHANNEL433].bw, CFG.lora[CHANNEL868].bw); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa SF         : %2d, %2d\0",                 SERIAL_PREFIX, CFG.lora[CHANNEL433].sf, CFG.lora[CHANNEL868].sf); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa CR         : 4/%d, 4/%d\0",               SERIAL_PREFIX, CFG.lora[CHANNEL433].cr, CFG.lora[CHANNEL868].cr); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa syncword   : 0x%02X, 0x%02X\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].sw, CFG.lora[CHANNEL868].sw); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa TX power   : %d dBm, %d dBm\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].pw, CFG.lora[CHANNEL868].pw); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa preamble   : %2d symbols, %2d symbols\0", SERIAL_PREFIX, CFG.lora[CHANNEL433].pl, CFG.lora[CHANNEL868].pl); Serial.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device Options         : Relay %s, EP %s, Fwd %s, Fetch %s, Per868 %s, Send %s", SERIAL_PREFIX,
+  snprintf(buf, LEN, "%sINFO: Device RDCP address    : %04X (relay id %01X, %s)\0", SERIAL_PREFIX, CFG.rdcp_address, CFG.relay_identifier, CFG.name); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device RDCP OA relays  : %01X %01X %01X\0",           SERIAL_PREFIX, CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device RDCP CIRE relays: %01X %01X %01X\0",           SERIAL_PREFIX, CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%SINFO: Device TS7Relay1 value : %02X",                       SERIAL_PREFIX, CFG.ts7relay1); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device RDCP Fetch from : %04X\0",                     SERIAL_PREFIX, CFG.neighbor_for_fetch); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa frequency  : %.3f MHz, %.3f MHz\0",       SERIAL_PREFIX, CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa bandwidth  : %3.0f kHz, %3.0f kHz\0",     SERIAL_PREFIX, CFG.lora[CHANNEL433].bw, CFG.lora[CHANNEL868].bw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa SF         : %2d, %2d\0",                 SERIAL_PREFIX, CFG.lora[CHANNEL433].sf, CFG.lora[CHANNEL868].sf); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa CR         : 4/%d, 4/%d\0",               SERIAL_PREFIX, CFG.lora[CHANNEL433].cr, CFG.lora[CHANNEL868].cr); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa syncword   : 0x%02X, 0x%02X\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].sw, CFG.lora[CHANNEL868].sw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa TX power   : %d dBm, %d dBm\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].pw, CFG.lora[CHANNEL868].pw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device LoRa preamble   : %2d symbols, %2d symbols\0", SERIAL_PREFIX, CFG.lora[CHANNEL433].pl, CFG.lora[CHANNEL868].pl); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, LEN, "%sINFO: Device Options         : Relay %s, EP %s, Fwd %s, Fetch %s, Per868 %s, Send %s, BT %s", SERIAL_PREFIX,
     CFG.relay_enabled    ? "+" : "DISABLED",
     CFG.ep_enabled       ? "+" : "DISABLED", 
     CFG.forward_enabled  ? "+" : "DISABLED", 
     CFG.fetch_enabled    ? "+" : "DISABLED", 
     CFG.periodic_enabled ? "+" : "DISABLED", 
-    CFG.send_enabled     ? "+" : "DISABLED"); Serial.println(buf);
+    CFG.send_enabled     ? "+" : "DISABLED",
+    CFG.bt_enabled       ? "+" : "DISABLED"
+  ); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, LEN, "%SINFO: Device settings        : HI %" PRId32 "m, MPA %" PRId64 "h, PI %" PRId64 "m", SERIAL_PREFIX,
     CFG.heartbeat_interval / MINUTES_TO_MILLISECONDS, 
     CFG.max_periodic868_age / HOURS_TO_MILLISECONDS, 
-    CFG.periodic_interval / MINUTES_TO_MILLISECONDS); Serial.println(buf);
+    CFG.periodic_interval / MINUTES_TO_MILLISECONDS); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   return;
 }
 
@@ -476,6 +511,23 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     }
     if (persist_selected_commands) if (!failed) persist_serial_command_for_replay(s);
     serial_banner();
+  }
+  else if (s_uppercase.startsWith("BTENABLE"))
+  {
+    enable_bt();
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("BTDISABLE"))
+  {
+    if (bt_on)
+    {
+      disable_bt();
+    }
+    else 
+    {
+      CFG.bt_enabled = false;
+    }
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
   else if (s_uppercase.startsWith("HEARTBEAT "))
   {

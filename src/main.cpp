@@ -15,6 +15,8 @@
 
 SET_LOOP_TASK_STACK_SIZE(16*1024); // default of 8 kb is not enough
 
+extern da_config CFG;             // Configuration data
+
 /**
  * Initial setup after power-on
  */
@@ -27,6 +29,7 @@ void setup()
   setup_radio();                  // Initialize RadioLib
   setup_persistence();            // Set up FFat persistence
   persistence_replay_serial();    // Set up device configuration based on stored commands
+  if (CFG.bt_enabled) enable_bt();// Set up BT access
   rdcp_memory_restore();          // Load persisted memories
   rdcp_duplicate_table_restore(); // Load persisted duplicate table entries
   serial_banner();                // Show current device configuration over Serial

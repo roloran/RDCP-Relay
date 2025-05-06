@@ -77,6 +77,7 @@ struct da_config {
     uint8_t  infrastructure_status  = RDCP_INFRASTRUCTURE_MODE_CRISIS; /// Current RDCP Infrastructure Status
     int64_t  max_periodic868_age    = 24 * HOURS_TO_MILLISECONDS;      /// Maximum age of periodically retransmitted old memories
     int64_t  periodic_interval      = 30 * MINUTES_TO_MILLISECONDS;    /// How often to send Periodic868 memories
+    bool     bt_enabled         = false;                /// BT access
 };
 
 #define MAX_LORA_PAYLOAD_SIZE 250

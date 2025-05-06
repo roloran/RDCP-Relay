@@ -75,5 +75,15 @@ void serial_process_command(String s, String processing_mode="ECHO: ", bool pers
  */
 void serial_banner(void);
 
+/**
+ * Enable BT access
+ */
+void enable_bt(void);
+
+/**
+ * Disable BT access
+ */
+void disable_bt(void);
+
 #endif
 /* EOF */
