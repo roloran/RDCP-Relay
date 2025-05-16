@@ -151,7 +151,17 @@ void rdcp_handle_incoming_lora_message(void)
                             If the HQ used us as entry point, send the message also on the 868 MHz channel 
                             so everyone in our area gets it even if they do not hear the HQ device directly.
                         */
-                        if (rdcp_msg_in.header.sender < 0x0100)
+                        if ((rdcp_msg_in.header.sender < 0x0100) &&
+                            (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
+                        {
+                            if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
+                        }
+                        /*
+                            The same applies to messages sent by other MGs so they reach the HQ on 868 MHz
+                            if it is in our area. 
+                        */
+                        if ((rdcp_msg_in.header.sender > 0x02FF) &&
+                            (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
                         {
                             if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
                         }
@@ -169,7 +179,8 @@ void rdcp_handle_incoming_lora_message(void)
                     duplicate. While we still may relay it then, we would not forward it on 868 MHz. 
                     Thus, we have to forward in on 868 MHz and to our DA here. 
                 */
-                if (rdcp_check_forward_868_relevance())
+                if (rdcp_check_forward_868_relevance() &&
+                    (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't shadow-forward heartbeats
                 { 
                     /* 
                         If the received message is a CIRE sent by an MG, we need to keep the 

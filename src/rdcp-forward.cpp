@@ -23,11 +23,11 @@ bool rdcp_check_forward_868_relevance(void)
     */
     if (
         (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_DA_STATUS_REQUEST) ||
-        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_DA_STATUS_RESPONSE) ||
+        // (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_DA_STATUS_RESPONSE) || // NB: needs to reach HQ over 868 MHz
         (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_FETCH_ALL_NEW_MESSAGES) ||
         (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_FETCH_MESSAGE) ||
         (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_DELIVERY_RECEIPT) ||
-        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT) ||
+        // (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT) || // NB: needs to reach HQ over 868 MHz
         (rdcp_msg_in.header.destination == CFG.rdcp_address)
     ) return false;
 
