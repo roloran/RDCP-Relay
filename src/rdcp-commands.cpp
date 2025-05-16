@@ -175,6 +175,13 @@ void rdcp_cmd_send_da_status_response(void)
 
     rdcp_prepare_response_header();
     rdcp_pass_response_to_scheduler(CHANNEL433);
+
+    /* As the HQ might be next to us, we also have to send this on 868 MHz. */
+    rdcp_response.header.relay1 = 0xEE;
+    rdcp_response.header.relay2 = 0xEE;
+    rdcp_response.header.relay3 = 0xEE;
+    rdcp_prepare_response_header();
+    rdcp_pass_response_to_scheduler(CHANNEL868);
     
     return;
 }
@@ -625,6 +632,13 @@ void rdcp_check_heartbeat(void)
 
         rdcp_prepare_response_header();
         rdcp_pass_response_to_scheduler(CHANNEL433);
+
+        /* As the HQ might be next to us, we also have to send this on 868 MHz. */
+        rdcp_response.header.relay1 = 0xEE;
+        rdcp_response.header.relay2 = 0xEE;
+        rdcp_response.header.relay3 = 0xEE;
+        rdcp_prepare_response_header();
+        rdcp_pass_response_to_scheduler(CHANNEL868);
     }
 
     return;
