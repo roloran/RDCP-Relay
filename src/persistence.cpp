@@ -147,7 +147,7 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
     {
       line = f.readString();
     }
-    int old_nonce = line.toInt();
+    uint16_t old_nonce = line.toInt();
     f.close();
     if (old_nonce < nonce)
     {
