@@ -130,7 +130,7 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
   if (!hasFFat) return false;
   bool is_valid = false;
   char filename[64];
-  snprintf(filename, 64, "%s.nce", name);
+  snprintf(filename, 64, "/%s.nce", name);
 #ifdef ROLORAN_USE_FFAT
   File f = FFat.open(filename, FILE_READ);
 #else
