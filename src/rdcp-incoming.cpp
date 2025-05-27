@@ -11,6 +11,7 @@
 #include "rdcp-neighbors.h"
 #include "rdcp-memory.h"
 #include "rdcp-commands.h"
+#include "rdcp-csv.h"
 
 lora_message current_lora_message;
 extern rdcp_message rdcp_msg_in;
@@ -66,6 +67,9 @@ void rdcp_handle_incoming_lora_message(void)
         last_seqnr = rdcp_msg_in.header.sequence_number;
         rdcp_reschedule_on_busy_channel(current_lora_message.channel);
     }
+
+    /* RDCPCSV output */
+    print_rdcp_csv();
 
     /* Check the RDCP Message duplicate status */
     bool duplicate = rdcp_check_duplicate_message(rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number);

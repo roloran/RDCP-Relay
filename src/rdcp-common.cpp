@@ -14,6 +14,9 @@ extern da_config CFG;
 extern lora_message current_lora_message;
 struct rdcp_dup_table dupe_table;              // One global RDCP Message Duplicate Table
 
+uint16_t most_recent_airtime = 0;
+uint8_t  most_recent_future_timeslots = 0;
+
 #define FILENAME_DUPETABLE "/dupetable"
 
 int64_t rdcp_get_channel_free_estimation(uint8_t channel)
@@ -84,6 +87,7 @@ void rdcp_update_cfest_in(void)
 
   uint32_t channel_free_after = remaining_current_sender_time + future_timeslots * timeslot_duration;
   int64_t channel_free_at = my_millis() + channel_free_after;
+  most_recent_future_timeslots = future_timeslots;
 
   rdcp_update_channel_free_estimation(current_lora_message.channel, channel_free_at);
 
@@ -166,6 +170,7 @@ uint16_t airtime_in_ms(uint8_t channel, uint8_t payload_size)
 
   /* Sum it up, converting from seconds to milliseconds and from Double to Int */
   time_for_packet = (uint16_t) (1000 * (time_for_preamble + time_for_payload));
+  most_recent_airtime = time_for_packet;
 
   return time_for_packet;
 }
