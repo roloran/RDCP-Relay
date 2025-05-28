@@ -19,6 +19,7 @@ extern int64_t last_tx_activity[NUMCHANNELS];
 extern int retransmission_count[NUMCHANNELS];
 extern int64_t CFEst[NUMCHANNELS];
 int64_t tx_start[NUMCHANNELS];
+int64_t tx_latency[NUMCHANNELS];
 
 void rdcp_queue_postpone_for_retransmission(uint8_t channel, int highlander, int64_t notbefore)
 {
@@ -79,6 +80,8 @@ void rdcp_send_message_force(uint8_t channel)
     serial_writeln(buf);
 
     tx_start[channel] = my_millis();
+    tx_latency[channel] = timediff > 0 ? timediff : 0;
+
     send_lora_message_binary(channel, txq[channel].entries[tx_ongoing[channel]].payload, 
                              txq[channel].entries[tx_ongoing[channel]].payload_length);
   
@@ -126,7 +129,19 @@ void rdcp_callback_txfin(uint8_t channel)
       memcpy(txq[channel].entries[tx_ongoing[channel]].payload, &rm.header, RDCP_HEADER_SIZE); // no need to overwrite RDCP payload
   
       retransmission_count[channel]++;
-      int64_t next_timestamp = tx_start[channel] + airtime_in_ms(channel, txq[channel].entries[tx_ongoing[channel]].payload_length) + RDCP_TIMESLOT_BUFFERTIME - RETRANSMISSION_PROCESSING_TIME;
+      /* 
+        The timestamp for sending the next retransmission from plain RDCP specs is the
+        timestamp of the previous transmission + its airtime + the 1000 ms buffer time. 
+        However, we schedule the retransmission a bit earlier due to processing time, 
+        approximated by a constant value for now. Additionally, we consider the latency
+        accumulated before the previous transmission with an upper bound of 250 ms for now. 
+      */
+      int64_t next_timestamp = tx_start[channel] + 
+                               airtime_in_ms(channel, txq[channel].entries[tx_ongoing[channel]].payload_length) + 
+                               RDCP_TIMESLOT_BUFFERTIME;
+      next_timestamp -= RETRANSMISSION_PROCESSING_TIME;
+      next_timestamp -= tx_latency[channel] < 250 ? tx_latency[channel] : 250;
+
       txq[channel].entries[tx_ongoing[channel]].currently_scheduled_time = next_timestamp;
       txq[channel].entries[tx_ongoing[channel]].force_tx = true;
       txq[channel].entries[tx_ongoing[channel]].important = true;
