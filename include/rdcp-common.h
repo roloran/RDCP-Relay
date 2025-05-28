@@ -24,10 +24,12 @@
 #define RDCP_TIMESLOT_BUFFERTIME 1000
 
 /// Based on the timestamp of an RDCP message reception, how long (in milliseconds) until the end of the timeslot? (max. 1000)
-#define TIMESLOT_SYNCER_AFTER_RX 980
+// Calculated dynamically
+// #define TIMESLOT_SYNCER_AFTER_RX 980
 
 /// How long does it take to schedule and pre-process a retransmission on this device (in ms)?
-#define RETRANSMISSION_PROCESSING_TIME 38
+// History: 38
+#define RETRANSMISSION_PROCESSING_TIME 200
 
 /**
   * Data structure for an RDCP v0.4 Header
