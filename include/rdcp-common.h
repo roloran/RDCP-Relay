@@ -23,13 +23,12 @@
 /// Buffer time within a timeslot between retransmissions according to specs
 #define RDCP_TIMESLOT_BUFFERTIME 1000
 
-/// Based on the timestamp of an RDCP message reception, how long (in milliseconds) until the end of the timeslot? (max. 1000)
-// Calculated dynamically
-// #define TIMESLOT_SYNCER_AFTER_RX 980
-
-/// How long does it take to schedule and pre-process a retransmission on this device (in ms)?
-// History: 38
+/// How long does it take to schedule and pre-process any retransmission on this device (in ms)?
 #define RETRANSMISSION_PROCESSING_TIME 200
+// History: 38
+
+/// How long does it take to schedule and pre-process a relay transmission (with initial/max counter value) on this device (in ms)?
+#define TRANSMISSION_PROCESSING_TIME 200
 
 /**
   * Data structure for an RDCP v0.4 Header

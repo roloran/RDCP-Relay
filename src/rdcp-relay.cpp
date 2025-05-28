@@ -107,7 +107,7 @@ void rdcp_schedule_relayed_message(int relay_delay)
     int64_t timeslot_syncer_after_rx = RDCP_TIMESLOT_BUFFERTIME - (my_millis() - current_lora_message.timestamp);
 
     int64_t my_timeslot_begin = previous_timeslot_rest + current_lora_message.timestamp + 
-                                timeslot_syncer_after_rx + tx_delay_in_ms;
+                                timeslot_syncer_after_rx + tx_delay_in_ms - TRANSMISSION_PROCESSING_TIME;
 
     /* Prepare outgoing message */
     rdcp_message r;
