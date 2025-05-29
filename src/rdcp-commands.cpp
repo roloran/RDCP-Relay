@@ -33,6 +33,8 @@ int64_t fetch_timeout = 0;
 bool rtc_active = false;
 rtc_entry RTC[MAX_RTC];
 
+int dasr_counter = 23;
+
 /**
  * Fill the RDCP Header fields for outgoing responses as the are 
  * the same for any outgoing response. 
@@ -182,6 +184,21 @@ void rdcp_cmd_send_da_status_response(void)
     rdcp_response.header.relay3 = 0xEE;
     rdcp_prepare_response_header();
     rdcp_pass_response_to_scheduler(CHANNEL868);
+
+    /* 
+      We use DA Status Requests periodically to align when we send Heartbeats. 
+      Based on the assumption that DA Status Requests are spread evenly by the HQ,
+      this contributes to collision avoidance by lowering the propability that 
+      multiple DAs send their Heartbeats at roughly the same time. 
+    */
+    dasr_counter++;
+    if (dasr_counter >= 24)
+    {
+        dasr_counter = 0;
+        double factor = (CFG.relay_identifier * 1.0) / 2.0;
+        int factor_int = (int) factor;
+        last_heartbeat_sent = my_millis() - (3 + factor_int) * MINUTES_TO_MILLISECONDS;
+    }
     
     return;
 }
