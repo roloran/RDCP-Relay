@@ -206,8 +206,24 @@ void rdcp_schedule_relayed_message(int relay_delay)
         for (int i=0; i < r.header.rdcp_payload_length; i++) 
             data_for_scheduler[i + RDCP_HEADER_SIZE] = r.payload.data[i];
 
+        bool forcedtx = FORCEDTX;
+        bool important = IMPORTANT;
+        /*
+          If we are yet about to relay another message (TXQ has an FORCEDTX entry) or know that 
+          another propagation cycle is still ongoing, we are a designated relay for a "collision" 
+          RDCP Message. This is the place to handle such collisions.
+        */
+        bool collision = rdcp_txqueue_has_forced_entry(CHANNEL433) || rdcp_propagation_cycle_duplicate(); 
+        if (collision)
+        {
+            serial_writeln("WARNING: Relay collision");
+            forcedtx = NOFORCEDTX;
+            important = NOTIMPORTANT;
+            my_timeslot_begin = 0 - random(5 * SECONDS_TO_MILLISECONDS, 15 * SECONDS_TO_MILLISECONDS);
+        }
+
         rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,
-          IMPORTANT, FORCEDTX, TX_CALLBACK_RELAY, my_timeslot_begin);
+          important, forcedtx, TX_CALLBACK_RELAY, my_timeslot_begin);
     }
 
     return;

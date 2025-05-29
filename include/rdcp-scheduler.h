@@ -139,5 +139,12 @@ void rdcp_dump_txq(uint8_t channel);
  */
 void rdcp_reschedule_on_busy_channel(uint8_t channel);
 
+/**
+ * Does TXQ have at least one FORCEDTX entry?
+ * @param channel CHANNEL433 or CHANNEL868
+ * @return bool true if hard-scheduled entry exists, false otherwise
+ */
+bool rdcp_txqueue_has_forced_entry(uint8_t channel);
+
 #endif 
 /* EOF */

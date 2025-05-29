@@ -16,6 +16,7 @@ struct rdcp_dup_table dupe_table;              // One global RDCP Message Duplic
 
 uint16_t most_recent_airtime = 0;
 uint8_t  most_recent_future_timeslots = 0;
+int64_t  contributed_propagation_cycle_end = 0;
 
 #define FILENAME_DUPETABLE "/dupetable"
 
@@ -137,6 +138,8 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
   uint32_t channel_free_after = remaining_current_sender_time + future_timeslots * timeslot_duration;
   int64_t channel_free_at = my_millis() + channel_free_after;
 
+  contributed_propagation_cycle_end = channel_free_at;
+
   rdcp_update_channel_free_estimation(channel, channel_free_at);
 
   char buf[256];
@@ -146,6 +149,20 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
   serial_writeln(buf);
 
   return;
+}
+
+bool rdcp_propagation_cycle_duplicate(void)
+{
+  int64_t now = my_millis();
+
+  /* 
+     We are within an ongoing propagation cycle if we actively contributed to it 
+     by relaying an RDCP Message and are not close to the CFEst value determined 
+     when we sent it.
+  */
+  if ((now + 1 * SECONDS_TO_MILLISECONDS) < contributed_propagation_cycle_end) return true;
+
+  return false;
 }
 
 uint16_t airtime_in_ms(uint8_t channel, uint8_t payload_size)
