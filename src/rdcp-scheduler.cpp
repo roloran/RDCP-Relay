@@ -229,6 +229,18 @@ void rdcp_txqueue_compress(void)
   return;
 }
 
+bool rdcp_txqueue_has_forced_entry(uint8_t channel)
+{
+  for (int i=0; i < MAX_TXQUEUE_ENTRIES; i++)
+  {
+    if (txq[channel].entries[i].waiting)
+    { 
+      if (txq[channel].entries[i].force_tx) return true;
+    }
+  }
+  return false;
+}
+
 bool rdcp_txqueue_loop(void)
 {
     int64_t now = my_millis();

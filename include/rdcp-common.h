@@ -201,6 +201,12 @@ uint8_t rdcp_get_ack_from_infrastructure_status(void);
 bool rdcp_matches_any_of_my_addresses(uint16_t rdcpa);
 
 /*
+ * Are we within an ongoing previously known propagation cycle right now?
+ * @return true if a propagation is still cycle ongoing, false otherwise
+ */
+bool rdcp_propagation_cycle_duplicate(void);
+
+/*
  * RDCP v0.4 Message Type definitions
  */
 #define RDCP_MSGTYPE_TEST                    0x00
