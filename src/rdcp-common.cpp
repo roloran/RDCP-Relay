@@ -214,7 +214,7 @@ int64_t rdcp_get_timeslot_duration(uint8_t channel, uint8_t *data)
   return duration;
 }
 
-void rdcp_reset_duplicate_message_table()
+void rdcp_reset_duplicate_message_table(void)
 {
   dupe_table.num_entries = 0;
   for (int i=0; i != 256; i++)
@@ -222,6 +222,21 @@ void rdcp_reset_duplicate_message_table()
     dupe_table.tableentry[i].origin = 0;
     dupe_table.tableentry[i].sequence_number = 0;
     dupe_table.tableentry[i].last_seen = 0;
+  }
+  return;
+}
+
+void rdcp_dump_duplicate_message_table(void)
+{
+  char info[256];
+  for (int i=0; i != 256; i++)
+  {
+    if (dupe_table.tableentry[i].origin == 0) continue;
+    snprintf(info, 256, "INFO: Dupe table entry %i: %04X with seqnr %04X",
+      i,
+      dupe_table.tableentry[i].origin,
+      dupe_table.tableentry[i].sequence_number);
+    serial_writeln(info);
   }
   return;
 }

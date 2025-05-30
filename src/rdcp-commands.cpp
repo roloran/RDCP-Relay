@@ -560,6 +560,8 @@ void rdcp_cmd_fetch_all(void)
 { 
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return;
 
+    serial_writeln("INFO: Responding to Fetch All New Messages from neighbor");
+
     /* Other side sends 0x0000 or latest refnr stored there, so increase by 1. */
     uint16_t wanted_min_ref = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1] + 1;
 
