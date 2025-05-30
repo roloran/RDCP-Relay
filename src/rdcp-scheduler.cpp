@@ -235,7 +235,14 @@ bool rdcp_txqueue_has_forced_entry(uint8_t channel)
   {
     if (txq[channel].entries[i].waiting)
     { 
-      if (txq[channel].entries[i].force_tx) return true;
+      if (txq[channel].entries[i].force_tx)
+      {
+        char info[256];
+        snprintf(info, 256, "INFO: Previous 433 FORCETX entry TXQi %d in %" PRId64 " ms", 
+          i, txq[channel].entries[i].currently_scheduled_time - my_millis()); 
+        serial_writeln(info);
+        return true;
+      }
     }
   }
   return false;
