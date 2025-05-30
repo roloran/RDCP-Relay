@@ -18,6 +18,8 @@ uint16_t most_recent_airtime = 0;
 uint8_t  most_recent_future_timeslots = 0;
 int64_t  contributed_propagation_cycle_end = 0;
 
+tracked_propagation_cycle propagation_cycles[MAX_TRACKED_PCS];
+
 #define FILENAME_DUPETABLE "/dupetable"
 
 int64_t rdcp_get_channel_free_estimation(uint8_t channel)
@@ -51,7 +53,7 @@ uint8_t rdcp_get_default_retransmission_counter_for_messagetype(uint8_t mt)
   return nrt;
 }
 
-void rdcp_update_cfest_in(void)
+void rdcp_update_cfest_in(uint16_t origin, uint16_t seqnr)
 {
   uint16_t airtime = airtime_in_ms(current_lora_message.channel, RDCP_HEADER_SIZE + rdcp_msg_in.header.rdcp_payload_length);
   uint16_t airtime_with_buffer = airtime + RDCP_TIMESLOT_BUFFERTIME;
@@ -91,6 +93,7 @@ void rdcp_update_cfest_in(void)
   most_recent_future_timeslots = future_timeslots;
 
   rdcp_update_channel_free_estimation(current_lora_message.channel, channel_free_at);
+  if (current_lora_message.channel == CHANNEL433) rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_KNOWN);
 
   char buf[256];
   snprintf(buf, 256, "INFO: Channel %d CFEst4current (in): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
@@ -101,12 +104,95 @@ void rdcp_update_cfest_in(void)
   return;
 }
 
-void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t mt, uint8_t relay1, uint8_t relay2, uint8_t relay3)
+void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uint16_t seqnr, uint8_t status)
+{
+  int index = -1;
+  int64_t now = my_millis();
+  bool newpc = false;
+  char info[256];
+
+  for (int i=0; i < MAX_TRACKED_PCS; i++)
+  {
+    if (propagation_cycles[i].timestamp_end < now) propagation_cycles[i].status = PC_STATUS_NONE;
+    if ((origin == propagation_cycles[i].origin) && 
+        (seqnr == propagation_cycles[i].seqnr)   &&
+        (PC_STATUS_NONE != propagation_cycles[i].status)) index = i;
+  }
+
+  if (index == -1)
+  {
+    newpc = true;
+    for (int i=0; i < MAX_TRACKED_PCS; i++)
+    {
+      if (propagation_cycles[i].status == PC_STATUS_NONE) { index = i; break; }
+    }
+  }
+
+  if (index == -1)
+  {
+    serial_writeln("WARNING: Failed to track propagation cycle");
+    return;
+  }
+
+  if (channel_free_at <= now) return; 
+
+  propagation_cycles[index].origin = origin;
+  propagation_cycles[index].seqnr = seqnr;
+  if (newpc)
+  { 
+    propagation_cycles[index].timestamp_known = now;
+    propagation_cycles[index].status = status;
+    propagation_cycles[index].timestamp_end = channel_free_at;
+  }
+  else 
+  {
+    if (status > propagation_cycles[index].status) propagation_cycles[index].status = status;
+    if (channel_free_at > propagation_cycles[index].timestamp_end) propagation_cycles[index].timestamp_end = channel_free_at;
+  }
+
+  for (int i=0; i < MAX_TRACKED_PCS; i++)
+  {
+    if (propagation_cycles[i].status != PC_STATUS_NONE)
+    {
+      snprintf(info, 256, "INFO: Propagation cycle i%d %04X-%04X ongoing for %" PRId64 " ms", 
+        i, 
+        propagation_cycles[i].origin, propagation_cycles[i].seqnr,
+        propagation_cycles[i].timestamp_end - now);
+      serial_writeln(info);
+    }
+  }
+
+  return;
+}
+
+int rdcp_get_number_of_tracked_propagation_cycles(void)
+{
+  int result = 0;
+  int64_t now = my_millis();
+  char info[256];
+
+  for (int i=0; i < MAX_TRACKED_PCS; i++)
+  {
+    if ((propagation_cycles[i].status != PC_STATUS_NONE) &&
+        (propagation_cycles[i].timestamp_end > now))
+    {
+      result++;
+      snprintf(info, 256, "INFO: Tracking propagation cycle i%d %04X-%04X, %" PRId64 " ms, as %s",
+        i, propagation_cycles[i].origin, propagation_cycles[i].seqnr, 
+        propagation_cycles[i].timestamp_end - now,
+        propagation_cycles[i].status == PC_STATUS_CONTRIBUTOR ? "contributor" : "listener");
+      serial_writeln(info);
+    }
+  }
+
+  return result;
+}
+void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t mt, uint8_t relay1, uint8_t relay2, uint8_t relay3, uint16_t origin, uint16_t seqnr)
 {
   uint16_t airtime = airtime_in_ms(channel, len);
   uint16_t airtime_with_buffer = airtime + RDCP_TIMESLOT_BUFFERTIME;
 
-  uint32_t remaining_current_sender_time = airtime_with_buffer * rcnt;
+  uint32_t remaining_current_sender_time = airtime_with_buffer * (rcnt+1);
 
   uint8_t nrt = 0;
   if ( (mt == RDCP_MSGTYPE_INFRASTRUCTURE_RESET) || (mt == RDCP_MSGTYPE_ACK) ||
@@ -141,6 +227,7 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
   contributed_propagation_cycle_end = channel_free_at;
 
   rdcp_update_channel_free_estimation(channel, channel_free_at);
+  rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_CONTRIBUTOR);
 
   char buf[256];
   snprintf(buf, 256, "INFO: Channel %d CFEst4current (out): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
@@ -154,13 +241,25 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
 bool rdcp_propagation_cycle_duplicate(void)
 {
   int64_t now = my_millis();
+  char info[256];
 
   /* 
      We are within an ongoing propagation cycle if we actively contributed to it 
      by relaying an RDCP Message and are not close to the CFEst value determined 
      when we sent it.
   */
-  if ((now + 1 * SECONDS_TO_MILLISECONDS) < contributed_propagation_cycle_end) return true;
+  if ((now + 1 * SECONDS_TO_MILLISECONDS) < contributed_propagation_cycle_end)
+  {
+    snprintf(info, 256, "INFO: Contributed propagation cycle ends in %" PRId64 " ms", contributed_propagation_cycle_end - now);
+    serial_writeln(info);
+    return true;
+  }
+
+  if (rdcp_get_number_of_tracked_propagation_cycles() > 1) 
+  {
+    serial_writeln("INFO: Multiple parallel propagation cycles tracked");
+    return true;
+  }
 
   return false;
 }
@@ -223,6 +322,7 @@ void rdcp_reset_duplicate_message_table(void)
     dupe_table.tableentry[i].sequence_number = 0;
     dupe_table.tableentry[i].last_seen = 0;
   }
+  rdcp_duplicate_table_persist();
   return;
 }
 

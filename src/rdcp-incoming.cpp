@@ -58,7 +58,7 @@ void rdcp_handle_incoming_lora_message(void)
     }
 
     /* Update the CFEst since we received an RDCP Message */
-    rdcp_update_cfest_in();
+    rdcp_update_cfest_in(rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number);
 
     /* Stop any TX events on the current channel as long as it is busy */
     if ((rdcp_msg_in.header.origin != last_origin) && (rdcp_msg_in.header.sequence_number != last_seqnr))

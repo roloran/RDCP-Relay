@@ -216,10 +216,22 @@ void rdcp_schedule_relayed_message(int relay_delay)
         bool collision = rdcp_txqueue_has_forced_entry(CHANNEL433) || rdcp_propagation_cycle_duplicate(); 
         if (collision)
         {
-            serial_writeln("WARNING: Relay collision");
-            forcedtx = NOFORCEDTX;
-            important = NOTIMPORTANT;
-            my_timeslot_begin = 0 - random(5 * SECONDS_TO_MILLISECONDS, 15 * SECONDS_TO_MILLISECONDS);
+            if (rdcp_get_number_of_tracked_propagation_cycles() > 1)
+            {
+                serial_writeln("WARNING: Relay collision (hard - Relay designation to multiple propagation cycles)");
+                forcedtx = NOFORCEDTX;
+                important = NOTIMPORTANT;
+                int64_t now = my_millis();
+                my_timeslot_begin = 0 - (my_timeslot_begin + (rdcp_get_channel_free_estimation(CHANNEL433) - now));
+                char info[256];
+                snprintf(info, 256, "INFO: Postponing relaying of conflicting message by %" PRId64 " ms after CFEst433", 
+                    -1 * my_timeslot_begin);
+                serial_writeln(info);
+            }
+            else 
+            {
+                serial_writeln("INFO: Relay collision (soft - repeated Relay designation to same tracked propagation cycle)");
+            }
         }
 
         rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,

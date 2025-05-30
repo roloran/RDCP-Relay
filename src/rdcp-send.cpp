@@ -85,12 +85,15 @@ void rdcp_send_message_force(uint8_t channel)
     send_lora_message_binary(channel, txq[channel].entries[tx_ongoing[channel]].payload, 
                              txq[channel].entries[tx_ongoing[channel]].payload_length);
   
+    uint16_t origin = txq[channel].entries[tx_ongoing[channel]].payload[2] + 256 * txq[channel].entries[tx_ongoing[channel]].payload[3];
+    uint16_t seqnr  = txq[channel].entries[tx_ongoing[channel]].payload[4] + 256 * txq[channel].entries[tx_ongoing[channel]].payload[5];
+
     rdcp_update_cfest_out(channel, txq[channel].entries[tx_ongoing[channel]].payload_length, 
       txq[channel].entries[tx_ongoing[channel]].payload[10],
       txq[channel].entries[tx_ongoing[channel]].payload[8],
       txq[channel].entries[tx_ongoing[channel]].payload[11],
       txq[channel].entries[tx_ongoing[channel]].payload[12],
-      txq[channel].entries[tx_ongoing[channel]].payload[13]);
+      txq[channel].entries[tx_ongoing[channel]].payload[13], origin, seqnr);
     rdcp_txqueue_reschedule(channel, -1);
 
     return; 

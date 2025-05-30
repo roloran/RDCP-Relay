@@ -160,8 +160,10 @@ int64_t rdcp_get_timeslot_duration(uint8_t channel, uint8_t *data);
 
 /**
  * Update the Channel Free Estimation (CFEst) based on the most recent incoming RDCP message.
+ * @param origin RDCP Message Header field Origin 
+ * @param seqnr  RDCP Message Header field SequenceNumber
  */
-void rdcp_update_cfest_in(void);
+void rdcp_update_cfest_in(uint16_t origin, uint16_t seqnr);
 
 /**
  * Update the Channel Free Estimation (CFEst) when sending an RDCP Message 
@@ -173,9 +175,10 @@ void rdcp_update_cfest_in(void);
  * @param relay1 RDCP Header field Relay1 of the outgoing message
  * @param relay2 RDCP Header field Relay2 of the outgoing message
  * @param relay3 RDCP Header field Relay3 of the outgoing message
+ * @param origin RDCP Header field Origin 
+ * @param seqnr  RDCP Header field SequenceNumber 
  */
-
-void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t mt, uint8_t relay1, uint8_t relay2, uint8_t relay3);
+void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t mt, uint8_t relay1, uint8_t relay2, uint8_t relay3, uint16_t origin, uint16_t seqnr);
 
 /**
  * The default initial value of the RDCP Header Retransmission Counter field 
@@ -207,6 +210,23 @@ bool rdcp_matches_any_of_my_addresses(uint16_t rdcpa);
 bool rdcp_propagation_cycle_duplicate(void);
 
 void rdcp_dump_duplicate_message_table(void);
+
+void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uint16_t seqnr, uint8_t status);
+
+int rdcp_get_number_of_tracked_propagation_cycles(void);
+
+#define PC_STATUS_NONE        0
+#define PC_STATUS_KNOWN       1 
+#define PC_STATUS_CONTRIBUTOR 2
+#define MAX_TRACKED_PCS      10
+
+struct tracked_propagation_cycle {
+  uint16_t origin = 0x0000;
+  uint16_t seqnr  = 0x0000;
+  int64_t  timestamp_end = 0;
+  int64_t  timestamp_known = 0;
+  uint8_t  status = PC_STATUS_NONE;
+};
 
 /*
  * RDCP v0.4 Message Type definitions
