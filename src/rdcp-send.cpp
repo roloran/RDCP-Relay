@@ -87,13 +87,14 @@ void rdcp_send_message_force(uint8_t channel)
   
     uint16_t origin = txq[channel].entries[tx_ongoing[channel]].payload[2] + 256 * txq[channel].entries[tx_ongoing[channel]].payload[3];
     uint16_t seqnr  = txq[channel].entries[tx_ongoing[channel]].payload[4] + 256 * txq[channel].entries[tx_ongoing[channel]].payload[5];
+    uint8_t mt      = txq[channel].entries[tx_ongoing[channel]].payload[8];
+    uint8_t rcnt    = txq[channel].entries[tx_ongoing[channel]].payload[10];
+    uint8_t relay1  = txq[channel].entries[tx_ongoing[channel]].payload[11];
+    uint8_t relay2  = txq[channel].entries[tx_ongoing[channel]].payload[12];
+    uint8_t relay3  = txq[channel].entries[tx_ongoing[channel]].payload[13];
 
     rdcp_update_cfest_out(channel, txq[channel].entries[tx_ongoing[channel]].payload_length, 
-      txq[channel].entries[tx_ongoing[channel]].payload[10],
-      txq[channel].entries[tx_ongoing[channel]].payload[8],
-      txq[channel].entries[tx_ongoing[channel]].payload[11],
-      txq[channel].entries[tx_ongoing[channel]].payload[12],
-      txq[channel].entries[tx_ongoing[channel]].payload[13], origin, seqnr);
+      rcnt, mt, relay1, relay2, relay3, origin, seqnr);
     rdcp_txqueue_reschedule(channel, -1);
 
     return; 
