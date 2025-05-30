@@ -222,7 +222,7 @@ void rdcp_schedule_relayed_message(int relay_delay)
                 forcedtx = NOFORCEDTX;
                 important = NOTIMPORTANT;
                 int64_t now = my_millis();
-                my_timeslot_begin = 0 - (my_timeslot_begin + (rdcp_get_channel_free_estimation(CHANNEL433) - now));
+                my_timeslot_begin = 0 - ((my_timeslot_begin - now) + (rdcp_get_channel_free_estimation(CHANNEL433) - now));
                 char info[256];
                 snprintf(info, 256, "INFO: Postponing relaying of conflicting message by %" PRId64 " ms after CFEst433", 
                     -1 * my_timeslot_begin);

@@ -28,7 +28,8 @@
 // History: 38
 
 /// How long does it take to schedule and pre-process a relay transmission (with initial/max counter value) on this device (in ms)?
-#define TRANSMISSION_PROCESSING_TIME 200
+#define TRANSMISSION_PROCESSING_TIME 300
+// History: 200
 
 /**
   * Data structure for an RDCP v0.4 Header
