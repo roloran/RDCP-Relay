@@ -206,6 +206,8 @@ bool rdcp_matches_any_of_my_addresses(uint16_t rdcpa);
  */
 bool rdcp_propagation_cycle_duplicate(void);
 
+void rdcp_dump_duplicate_message_table(void);
+
 /*
  * RDCP v0.4 Message Type definitions
  */

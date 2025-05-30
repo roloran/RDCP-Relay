@@ -183,6 +183,11 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
       serial_writeln("INFO: Re-initalizing the radio with current configuration");
       setup_radio();
     }
+    else if (p1.equals(String("DUPETABLE")))
+    {
+      serial_writeln("INFO: Resetting duplicate table");
+      rdcp_reset_duplicate_message_table();
+    }
   } // ^ RESET
  else if (s_uppercase.startsWith("SHOW "))
   {
@@ -198,6 +203,10 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     else if (p1.equals(String("MEMORIES")))
     {
       rdcp_memory_dump();
+    }
+    else if (p1.equals(String("DUPETABLE")))
+    {
+      rdcp_dump_duplicate_message_table();
     }
   } // ^ SHOW
   else if (s_uppercase.startsWith("LORAFREQ "))

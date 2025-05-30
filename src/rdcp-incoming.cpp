@@ -206,6 +206,7 @@ void rdcp_handle_incoming_lora_message(void)
         /* If we are the destination of a message, fulfill relevant requests */
         if (rdcp_matches_any_of_my_addresses(rdcp_msg_in.header.destination))
         {
+           serial_writeln("INFO: Handling incoming command");
            rdcp_handle_command();
         }
 
