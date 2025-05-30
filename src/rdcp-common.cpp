@@ -177,10 +177,11 @@ int rdcp_get_number_of_tracked_propagation_cycles(void)
         (propagation_cycles[i].timestamp_end > now))
     {
       result++;
-      snprintf(info, 256, "INFO: Tracking propagation cycle i%d %04X-%04X, %" PRId64 " ms, as %s",
+      snprintf(info, 256, "INFO: Tracking propagation cycle i%d %04X-%04X, %" PRId64 " ms, as %s (known for %" PRId64 " ms)",
         i, propagation_cycles[i].origin, propagation_cycles[i].seqnr, 
         propagation_cycles[i].timestamp_end - now,
-        propagation_cycles[i].status == PC_STATUS_CONTRIBUTOR ? "contributor" : "listener");
+        propagation_cycles[i].status == PC_STATUS_CONTRIBUTOR ? "contributor" : "listener", 
+        now - propagation_cycles[i].timestamp_known);
       serial_writeln(info);
     }
   }
