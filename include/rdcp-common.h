@@ -209,11 +209,31 @@ bool rdcp_matches_any_of_my_addresses(uint16_t rdcpa);
  */
 bool rdcp_propagation_cycle_duplicate(void);
 
+/**
+ * Dump the current duplicate table via Serial.
+ */
 void rdcp_dump_duplicate_message_table(void);
 
+/**
+ * Update the list of tracked propagation cycles (only relevant on 433 MHz channel). 
+ * To be called when a new message was received or sent. Implicitly removes expired entries. 
+ * @param channel_free_at Timestamp (ms) of when the channel will be free again 
+ * @param origin RDCP address of the message's origin 
+ * @param seqnr Sequence number of the tracked message 
+ * @param status Propagation cycle status for this device, usually PC_STATUS_KNOWN or PC_STATUS_CONTRIBUTOR
+ */
 void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uint16_t seqnr, uint8_t status);
 
+/**
+ * Get the number of currently tracked propagation cycles.
+ * Should be 0 or 1 during regular operation, but can be larger in case of 2nd category RDCP Message collisions. 
+ * @return Number of tracked currently ongoing 433 MHz propagation cycles
+ */
 int rdcp_get_number_of_tracked_propagation_cycles(void);
+
+/*
+ * Propagation cycle tracking data
+ */
 
 #define PC_STATUS_NONE        0
 #define PC_STATUS_KNOWN       1 
