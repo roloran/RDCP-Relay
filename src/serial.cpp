@@ -102,6 +102,7 @@ void serial_banner(void)
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP OA relays  : %01X %01X %01X\0",           SERIAL_PREFIX, CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP CIRE relays: %01X %01X %01X\0",           SERIAL_PREFIX, CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%SINFO: Device TS4 all ones    : %s",                         SERIAL_PREFIX, CFG.ts4allones ? "enabled" : "disabled"); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%SINFO: Device TS7Relay1 value : %02X",                       SERIAL_PREFIX, CFG.ts7relay1); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP Fetch from : %04X\0",                     SERIAL_PREFIX, CFG.neighbor_for_fetch); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%sINFO: Device LoRa frequency  : %.3f MHz, %.3f MHz\0",       SERIAL_PREFIX, CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
@@ -452,6 +453,19 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     CFG.ts7relay1 = ts7r;
     snprintf(info, INFOLEN, "INFO: Changed this device's Timeslot7 Relay1 value to %02X", CFG.ts7relay1);
     serial_writeln(info);
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("RDCPTS4R"))
+  { // Toggles the relay1 header field value to use when relaying in timeslot 4
+    CFG.ts4allones = !CFG.ts4allones;
+    if (CFG.ts4allones)
+    {
+      serial_writeln("INFO: Enabled all-relay in final timeslot based on ts4-relaying");
+    }
+    else 
+    {
+      serial_writeln("INFO: Disabled all-relay in final timeslot based on ts4-relaying");
+    }
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
   else if (s_uppercase.startsWith("MULTICAST "))

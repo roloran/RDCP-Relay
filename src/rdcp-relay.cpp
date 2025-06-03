@@ -24,6 +24,8 @@ int rdcp_check_relay_designation(void)
     /* Catch-all magic value */
     if ((rdcp_msg_in.header.relay1 == 0xFF) || (rdcp_msg_in.header.relay2 == 0xFF) || (rdcp_msg_in.header.relay3 == 0xFF))
         result = 0; // relay immediately
+    if ((rdcp_msg_in.header.relay1 == 0xF3) && (rdcp_msg_in.header.relay2 == 0xEE) && (rdcp_msg_in.header.relay3 == 0xEE))
+        result = 3; // valid in TS4 only, all send in TS8
 
     if (result > -1)
     {
@@ -163,6 +165,7 @@ void rdcp_schedule_relayed_message(int relay_delay)
     else if (myts == 4)
     {
         r.header.relay1 = (my_relay1 << 4) + 3; 
+        if (CFG.ts4allones) r.header.relay1 = 0xF3;
         r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
         r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
