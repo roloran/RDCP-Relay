@@ -68,21 +68,21 @@ void rdcp_forward_schedule(bool add_random_delay)
     /* Update header fields for the outgoing message */
     r.header.sender = CFG.rdcp_address;
     r.header.counter = rdcp_get_default_retransmission_counter_for_messagetype(r.header.message_type);
-    r.header.relay1 = 0xEE;
-    r.header.relay2 = 0xEE;
-    r.header.relay3 = 0xEE;
+    r.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
 
     /* Update CRC header field */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - 2);
-    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - 2] = r.payload.data[i];
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + r.header.rdcp_payload_length);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
+    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = r.payload.data[i];
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + r.header.rdcp_payload_length);
     r.header.checksum = actual_crc;
     
     /* Schedule the message for sending if the forwarding functionality is enabled for this DA */
     if (CFG.forward_enabled)
     {
-        uint8_t data_for_scheduler[256];
+        uint8_t data_for_scheduler[INFOLEN];
         memcpy(&data_for_scheduler, &r.header, RDCP_HEADER_SIZE);
         for (int i=0; i < r.header.rdcp_payload_length; i++) 
             data_for_scheduler[i + RDCP_HEADER_SIZE] = r.payload.data[i];
@@ -101,7 +101,7 @@ void rdcp_forward_schedule(bool add_random_delay)
             important = true;
         }
 
-        int64_t forced_time = 0;
+        int64_t forced_time = TX_WHEN_CF;
         if (add_random_delay)
         { 
             forced_time = 0 - random(10000,20000);

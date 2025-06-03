@@ -4,7 +4,7 @@
 #include "lora.h"
 #include "hal.h"
 
-int64_t last_csv_timestamp = 0;
+int64_t last_csv_timestamp = RDCP_TIMESTAMP_ZERO;
 
 extern lora_message current_lora_message;
 extern rdcp_message rdcp_msg_in;
@@ -16,9 +16,9 @@ extern uint8_t  most_recent_future_timeslots;
 void print_rdcp_csv(void)
 {
   int64_t now = my_millis();
-  char info[512];
+  char info[2*INFOLEN];
 
-  uint16_t refnr = 0x0000;
+  uint16_t refnr = RDCP_OA_REFNR_SPECIAL_ZERO;
   if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT)
   {
     refnr = rdcp_msg_in.payload.data[1] + 256 * rdcp_msg_in.payload.data[2];
@@ -28,13 +28,13 @@ void print_rdcp_csv(void)
     refnr = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
   }
 
-  snprintf(info, 512, "RDCPCSV: %04X-%s,%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%d,%04X,%d,%04X,%04X,%04X,%04X,%02X,%d,%02X,%02X,%02X,%04X,%d,%3.3f", 
+  snprintf(info, 2*INFOLEN, "RDCPCSV: %04X-%s,%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%d,%04X,%d,%04X,%04X,%04X,%04X,%02X,%d,%02X,%02X,%02X,%04X,%d,%3.3f", 
     CFG.rdcp_address, current_lora_message.channel == CHANNEL433 ? "433" : "868",
     now - last_csv_timestamp,
     now, 
     CFEst[current_lora_message.channel],
     CFEst[current_lora_message.channel] - now,
-    rdcp_msg_in.header.rdcp_payload_length + 16,
+    rdcp_msg_in.header.rdcp_payload_length + RDCP_HEADER_SIZE,
     refnr,
     most_recent_future_timeslots,
     rdcp_msg_in.header.sender,

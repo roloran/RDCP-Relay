@@ -28,12 +28,13 @@ extern rdcp_memory_table mem;
 extern bool currently_in_fetch_mode;
 
 rdcp_message rdcp_response;
-int64_t last_heartbeat_sent = 0;
-int64_t fetch_timeout = 0;
+int64_t last_heartbeat_sent = RDCP_TIMESTAMP_ZERO;
+int64_t fetch_timeout = RDCP_TIMESTAMP_ZERO;
 bool rtc_active = false;
 rtc_entry RTC[MAX_RTC];
 
-int dasr_counter = 23;
+#define DASR_ROLLOVER 24
+int dasr_counter = DASR_ROLLOVER - 1;
 
 /**
  * Fill the RDCP Header fields for outgoing responses as the are 
@@ -49,11 +50,11 @@ void rdcp_prepare_response_header(void)
     rdcp_response.header.counter = rdcp_get_default_retransmission_counter_for_messagetype(rdcp_response.header.message_type);
 
     /* Update CRC header field */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &rdcp_response.header, RDCP_HEADER_SIZE - 2);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &rdcp_response.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
-        data_for_crc[i + RDCP_HEADER_SIZE - 2] = rdcp_response.payload.data[i];
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + rdcp_response.header.rdcp_payload_length);
+        data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = rdcp_response.payload.data[i];
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
     return;
@@ -65,7 +66,7 @@ void rdcp_prepare_response_header(void)
  */
 void rdcp_pass_response_to_scheduler(uint8_t channel)
 {
-    uint8_t data_for_scheduler[256];
+    uint8_t data_for_scheduler[INFOLEN];
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];
@@ -91,7 +92,7 @@ void rdcp_cmd_send_echo_response(void)
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal pings only
     rdcp_response.header.destination = rdcp_msg_in.header.origin;
     rdcp_response.header.message_type = RDCP_MSGTYPE_ECHO_RESPONSE;
-    rdcp_response.header.rdcp_payload_length = 0;
+    rdcp_response.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_ECHO_RESPONSE;
 
     /* Respond on the same channel we got the request from, set Relays accordingly. */
     if (current_lora_message.channel == CHANNEL433)
@@ -102,9 +103,9 @@ void rdcp_cmd_send_echo_response(void)
     }
     else 
     {
-        rdcp_response.header.relay1 = 0xEE;
-        rdcp_response.header.relay2 = 0xEE;
-        rdcp_response.header.relay3 = 0xEE;
+        rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
 
     rdcp_prepare_response_header();
@@ -140,7 +141,7 @@ void rdcp_cmd_send_da_status_response(void)
     uint16_t num_das = 0;
     for (int i=0; i < MAX_NEIGHBORS; i++)
     {
-        if ((neighbors[i].sender >= 0x0300) && (neighbors[i].sender < 0xB000))
+        if ((neighbors[i].sender >= RDCP_ADDRESS_MG_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MULTICAST_LOWERBOUND))
         { 
             if (!neighbors[i].counted)
             {
@@ -148,14 +149,14 @@ void rdcp_cmd_send_da_status_response(void)
                 if (want_reset) neighbors[i].counted = true;
             }
         }
-        if ((neighbors[i].sender >= 0x0100) && (neighbors[i].sender < 0x0300))
+        if ((neighbors[i].sender >= RDCP_ADDRESS_BBKDA_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND))
         {
             if (!neighbors[i].counted)
             { 
                 rdcp_response.payload.data[9 + (4*num_das + 0)] = neighbors[i].sender % 256;
                 rdcp_response.payload.data[9 + (4*num_das + 1)] = neighbors[i].sender / 256;
-                rdcp_response.payload.data[9 + (4*num_das + 2)] = 200 + (int8_t) neighbors[i].rssi;
-                rdcp_response.payload.data[9 + (4*num_das + 3)] = 100 + (int8_t) neighbors[i].snr; 
+                rdcp_response.payload.data[9 + (4*num_das + 2)] = BIAS_RSSI + (int8_t) neighbors[i].rssi;
+                rdcp_response.payload.data[9 + (4*num_das + 3)] = BIAS_SNR + (int8_t) neighbors[i].snr; 
                 num_das++;
                 if (want_reset) neighbors[i].counted = true;
             }
@@ -179,9 +180,9 @@ void rdcp_cmd_send_da_status_response(void)
     rdcp_pass_response_to_scheduler(CHANNEL433);
 
     /* As the HQ might be next to us, we also have to send this on 868 MHz. */
-    rdcp_response.header.relay1 = 0xEE;
-    rdcp_response.header.relay2 = 0xEE;
-    rdcp_response.header.relay3 = 0xEE;
+    rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     rdcp_prepare_response_header();
     rdcp_pass_response_to_scheduler(CHANNEL868);
 
@@ -192,7 +193,7 @@ void rdcp_cmd_send_da_status_response(void)
       multiple DAs send their Heartbeats at roughly the same time. 
     */
     dasr_counter++;
-    if (dasr_counter >= 24)
+    if (dasr_counter >= DASR_ROLLOVER)
     {
         dasr_counter = 0;
         double factor = (CFG.relay_identifier * 1.0) / 2.0;
@@ -213,7 +214,7 @@ void rdcp_cmd_send_da_status_response(void)
 void get_inline_hash(struct rdcp_message *m, uint8_t payloadprefixlength, uint8_t *hashtarget)
 {
   /* Prepare the signed data */
-  uint8_t data_to_sign[256];
+  uint8_t data_to_sign[INFOLEN];
   data_to_sign[0] = m->header.origin % 256;
   data_to_sign[1] = m->header.origin / 256;
   data_to_sign[2] = m->header.sequence_number % 256;
@@ -229,11 +230,11 @@ void get_inline_hash(struct rdcp_message *m, uint8_t payloadprefixlength, uint8_
   SHA256 h = SHA256();
   h.reset();
   h.update(data_to_sign, data_to_sign_length);
-  uint8_t sha[32];
-  h.finalize(sha, 32);
+  uint8_t sha[SHABUFSIZE];
+  h.finalize(sha, SHABUFSIZE);
 
   /* Copy result to target buffer */
-  for (int i=0; i<32; i++) hashtarget[i] = sha[i];
+  for (int i=0; i<SHABUFSIZE; i++) hashtarget[i] = sha[i];
 
   return;
 }
@@ -243,17 +244,17 @@ void get_inline_hash(struct rdcp_message *m, uint8_t payloadprefixlength, uint8_
  */
 void rdcp_cmd_block_device(void)
 { 
-    if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + 4)
+    if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + RDCP_PAYLOAD_SIZE_INLINE_BLOCKDEVICE)
     {
       serial_writeln("WARNING: Payload size of received RDCP Block Device Alert is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
-    get_inline_hash(&rdcp_msg_in, 4, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[4+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sha[SHABUFSIZE];
+    get_inline_hash(&rdcp_msg_in, RDCP_PAYLOAD_SIZE_INLINE_BLOCKDEVICE, sha);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[RDCP_PAYLOAD_SIZE_INLINE_BLOCKDEVICE+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Block Device Alert - ignoring");
@@ -263,23 +264,23 @@ void rdcp_cmd_block_device(void)
     uint16_t target = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
     uint16_t duration = rdcp_msg_in.payload.data[2] + 256 * rdcp_msg_in.payload.data[3];
 
-    char info[256];
-    if (duration == 0)
+    char info[INFOLEN];
+    if (duration == RDCP_DURATION_ZERO)
     {
-        snprintf(info, 256, "INFO: Lifting device block for %04X", target);
+        snprintf(info, INFOLEN, "INFO: Lifting device block for %04X", target);
         serial_writeln(info);
         rdcp_device_block_remove(target);
     }
     else 
     {
-        snprintf(info, 256, "INFO: Blocking device %04X for %d minutes", target, duration);
+        snprintf(info, INFOLEN, "INFO: Blocking device %04X for %d minutes", target, duration);
         serial_writeln(info);
         rdcp_device_block_add(target, duration);
     }
 
     if (target == CFG.rdcp_address)
     {
-        snprintf(info, 256, "DA_BLOCK %04X %d", target, duration);
+        snprintf(info, INFOLEN, "DA_BLOCK %04X %d", target, duration);
         serial_writeln(info);
     }
 
@@ -291,17 +292,17 @@ void rdcp_cmd_block_device(void)
  */
 void rdcp_cmd_timestamp(void)
 { 
-    if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + 6)
+    if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + RDCP_PAYLOAD_SIZE_INLINE_TIMESTAMP)
     {
       serial_writeln("WARNING: Payload size of received RDCP Timestamp is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
-    get_inline_hash(&rdcp_msg_in, 6, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[6+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sha[SHABUFSIZE];
+    get_inline_hash(&rdcp_msg_in, RDCP_PAYLOAD_SIZE_INLINE_TIMESTAMP, sha);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[RDCP_PAYLOAD_SIZE_INLINE_TIMESTAMP+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Timestamp - ignoring");
@@ -315,11 +316,11 @@ void rdcp_cmd_timestamp(void)
     uint8_t minute = rdcp_msg_in.payload.data[4];
     uint8_t status = rdcp_msg_in.payload.data[5];
   
-    char msg[256];
-    snprintf(msg, 256, "INFO: Received valid RDCP Timestamp: %02d.%02d.%04d %02d:%02d (Status %d)", day, month, 2025 + year, hour, minute, status);
+    char msg[INFOLEN];
+    snprintf(msg, INFOLEN, "INFO: Received valid RDCP Timestamp: %02d.%02d.%04d %02d:%02d (Status %d)", day, month, 2025 + year, hour, minute, status);
     serial_writeln(msg);
 
-    snprintf(msg, 256, "DA_TIME %02d.%02d.%04d %02d:%02d (%d)", day, month, 2025 + year, hour, minute, status);
+    snprintf(msg, INFOLEN, "DA_TIME %02d.%02d.%04d %02d:%02d (%d)", day, month, 2025 + year, hour, minute, status);
     serial_writeln(msg);
 
     /*
@@ -336,7 +337,7 @@ void rdcp_cmd_timestamp(void)
 void rdcp_derive_infrastructure_status_from_oa(void)
 {
     if ((rdcp_msg_in.header.destination == RDCP_BROADCAST_ADDRESS) || 
-       ((rdcp_msg_in.header.destination >= 0xB000) && (rdcp_msg_in.header.destination <= 0xBFFF))) 
+       ((rdcp_msg_in.header.destination >= RDCP_ADDRESS_MULTICAST_LOWERBOUND) && (rdcp_msg_in.header.destination <= RDCP_ADDRESS_MULTICAST_UPPERBOUND))) 
     {
         /* RDCP v0.4 OAs have a subheader, and thus the OA subtype is the first byte of the RDCP Payload */
         uint8_t oatype = rdcp_msg_in.payload.data[0];
@@ -353,18 +354,18 @@ void rdcp_cmd_device_reset(void)
 { 
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal device resets only
 
-    uint8_t cmd_payload_len = 2;
+    uint8_t cmd_payload_len = RDCP_PAYLOAD_SIZE_INLINE_DEVICERESET;
     if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + cmd_payload_len)
     {
       serial_writeln("WARNING: Payload size of received RDCP Device Reset is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, cmd_payload_len, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Device Reset - ignoring");
@@ -373,7 +374,7 @@ void rdcp_cmd_device_reset(void)
  
     uint16_t nonce = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
 
-    char noncename[64]; snprintf(noncename, 64, "rstdev");
+    char noncename[NONCENAMESIZE]; snprintf(noncename, NONCENAMESIZE, "rstdev");
     if (!persistence_checkset_nonce(noncename, nonce))
     {
       serial_writeln("WARNING: Invalid nonce received for signed RDCP RESET of DEVICE");
@@ -400,18 +401,18 @@ void rdcp_cmd_device_reboot(void)
 { 
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal device reboots only
 
-    uint8_t cmd_payload_len = 2;
+    uint8_t cmd_payload_len = RDCP_PAYLOAD_SIZE_INLINE_DEVICEREBOOT;
     if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + cmd_payload_len)
     {
       serial_writeln("WARNING: Payload size of received RDCP Device Reboot is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, cmd_payload_len, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Device Reboot - ignoring");
@@ -420,7 +421,7 @@ void rdcp_cmd_device_reboot(void)
  
     uint16_t nonce = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
 
-    char noncename[64]; snprintf(noncename, 64, "rstdev");
+    char noncename[NONCENAMESIZE]; snprintf(noncename, NONCENAMESIZE, "rstdev");
     if (!persistence_checkset_nonce(noncename, nonce))
     {
       serial_writeln("WARNING: Invalid nonce received for signed RDCP Reboot");
@@ -445,18 +446,18 @@ void rdcp_cmd_maintenance(void)
 { 
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal device maintenance only
 
-    uint8_t cmd_payload_len = 2;
+    uint8_t cmd_payload_len = RDCP_PAYLOAD_SIZE_INLINE_MAINTENANCE;
     if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + cmd_payload_len)
     {
       serial_writeln("WARNING: Payload size of received RDCP Device Maintenance is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, cmd_payload_len, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Maintenance - ignoring");
@@ -465,7 +466,7 @@ void rdcp_cmd_maintenance(void)
  
     uint16_t nonce = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
 
-    char noncename[64]; snprintf(noncename, 64, "rstdev");
+    char noncename[NONCENAMESIZE]; snprintf(noncename, NONCENAMESIZE, "rstdev");
     if (!persistence_checkset_nonce(noncename, nonce))
     {
       serial_writeln("WARNING: Invalid nonce received for signed RDCP Maintenance");
@@ -486,18 +487,18 @@ void rdcp_cmd_maintenance(void)
  */
 void rdcp_cmd_infrastructure_reset(void)
 { 
-    uint8_t cmd_payload_len = 2;
+    uint8_t cmd_payload_len = RDCP_PAYLOAD_SIZE_INLINE_INFRARESET;
     if (rdcp_msg_in.header.rdcp_payload_length != RDCP_SIGNATURE_LENGTH + cmd_payload_len)
     {
       serial_writeln("WARNING: Payload size of received RDCP Infrastructure Reset is invalid - ignoring");
       return;
     }
   
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, cmd_payload_len, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[cmd_payload_len+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP Infrastructure Reset - ignoring");
@@ -506,7 +507,7 @@ void rdcp_cmd_infrastructure_reset(void)
  
     uint16_t nonce = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
 
-    char noncename[64]; snprintf(noncename, 64, "rstinfra");
+    char noncename[NONCENAMESIZE]; snprintf(noncename, NONCENAMESIZE, "rstinfra");
     if (!persistence_checkset_nonce(noncename, nonce))
     {
       serial_writeln("WARNING: Invalid nonce received for signed RDCP Infrastructure Reset");
@@ -536,11 +537,11 @@ void rdcp_cmd_oa_reset(void)
       return;
     }
   
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, 0, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[0+i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[0+i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP OA Reset - ignoring");
@@ -566,8 +567,8 @@ void rdcp_cmd_fetch_all(void)
     uint16_t wanted_min_ref = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1] + 1;
 
     int first = mem.idx_first;
-    int starter = -1;
-    if (first != -1)
+    int starter = RDCP_INDEX_NONE;
+    if (first != RDCP_INDEX_NONE)
     {
         for (int i=0; i < MAX_STORED_MSGS; i++)
         {
@@ -595,8 +596,8 @@ void rdcp_cmd_fetch_one(void)
     uint16_t wanted_ref = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
 
     int first = mem.idx_first;
-    int starter = -1;
-    if (first != -1)
+    int starter = RDCP_INDEX_NONE;
+    if (first != RDCP_INDEX_NONE)
     {
         for (int i=0; i < MAX_STORED_MSGS; i++)
         {
@@ -631,11 +632,11 @@ void rdcp_check_heartbeat(void)
         uint16_t num_mgs = 0;
         for (int i=0; i < MAX_NEIGHBORS; i++)
         {
-            if ((neighbors[i].sender >= 0x0300) && (neighbors[i].sender < 0xB000))
+            if ((neighbors[i].sender >= RDCP_ADDRESS_MG_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MULTICAST_LOWERBOUND))
             { 
                 if (neighbors[i].timestamp > now - CFG.heartbeat_interval)
                 {
-                    if (num_mgs <= 91)
+                    if (num_mgs <= 91) // max. number of entries according to specs
                     {
                         rdcp_response.payload.data[2 + (2*num_mgs + 0)] = neighbors[i].sender % 256;
                         rdcp_response.payload.data[2 + (2*num_mgs + 1)] = neighbors[i].sender / 256;
@@ -653,9 +654,9 @@ void rdcp_check_heartbeat(void)
         rdcp_pass_response_to_scheduler(CHANNEL433);
 
         /* As the HQ might be next to us, we also have to send this on 868 MHz. */
-        rdcp_response.header.relay1 = 0xEE;
-        rdcp_response.header.relay2 = 0xEE;
-        rdcp_response.header.relay3 = 0xEE;
+        rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_prepare_response_header();
         rdcp_pass_response_to_scheduler(CHANNEL868);
     }
@@ -670,13 +671,13 @@ void rdcp_cmd_delivery_receipt(void)
 { 
     if (rdcp_msg_in.header.destination != CFG.rdcp_address) return;
     new_delivery_receipt_from = rdcp_msg_in.header.origin;
-    char info[256];
-    snprintf(info, 256, "INFO: Received delivery receipt from %04X", rdcp_msg_in.header.origin);
+    char info[INFOLEN];
+    snprintf(info, INFOLEN, "INFO: Received delivery receipt from %04X", rdcp_msg_in.header.origin);
     serial_writeln(info);    
-    snprintf(info, 256, "DA_DELIVERY %04X", rdcp_msg_in.header.origin);
+    snprintf(info, INFOLEN, "DA_DELIVERY %04X", rdcp_msg_in.header.origin);
     serial_writeln(info);    
     currently_in_fetch_mode = false;
-    fetch_timeout = 0;
+    fetch_timeout = RDCP_TIMESTAMP_ZERO;
     return;
 }
 
@@ -706,11 +707,11 @@ void rdcp_cmd_check_rtc(void)
 
 void rdcp_cmd_rtc(void)
 {
-    uint8_t sha[32];
+    uint8_t sha[SHABUFSIZE];
     get_inline_hash(&rdcp_msg_in, rdcp_msg_in.header.rdcp_payload_length - RDCP_SIGNATURE_LENGTH, sha);
-    uint8_t sig[128];
-    for (int i=0; i<65; i++) sig[i] = rdcp_msg_in.payload.data[rdcp_msg_in.header.rdcp_payload_length - RDCP_SIGNATURE_LENGTH + i];
-    bool valid_signature = schnorr_verify_signature(sha, 32, sig);
+    uint8_t sig[SIGBUFSIZE];
+    for (int i=0; i<RDCP_SIGNATURE_LENGTH; i++) sig[i] = rdcp_msg_in.payload.data[rdcp_msg_in.header.rdcp_payload_length - RDCP_SIGNATURE_LENGTH + i];
+    bool valid_signature = schnorr_verify_signature(sha, SHABUFSIZE, sig);
     if (!valid_signature)
     {
       serial_writeln("WARNING: Invalid HQ Schnorr signature for RDCP RTC - ignoring");
@@ -725,9 +726,9 @@ void rdcp_cmd_rtc(void)
             RTC[i].alarm   = my_millis() + rdcp_msg_in.payload.data[0] * MINUTES_TO_MILLISECONDS;
             RTC[i].restart = rdcp_msg_in.payload.data[1]; 
             RTC[i].persist = rdcp_msg_in.payload.data[2];
-            for (int j=0; j<rdcp_msg_in.header.rdcp_payload_length - RDCP_SIGNATURE_LENGTH - 3; j++)
+            for (int j=0; j<rdcp_msg_in.header.rdcp_payload_length - RDCP_SIGNATURE_LENGTH - RDCP_PAYLOAD_SIZE_INLINE_RTC; j++)
             {
-                RTC[i].rtc[j+0] = rdcp_msg_in.payload.data[j+3];
+                RTC[i].rtc[j+0] = rdcp_msg_in.payload.data[j+RDCP_PAYLOAD_SIZE_INLINE_RTC];
                 RTC[i].rtc[j+1] = 0;
             }
             break;
@@ -778,16 +779,16 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     rdcp_response.payload.data[2] = refnr / 256;
 
     /* Convert the text message to its Unishox2 representation */
-    char buf[256];
+    char buf[INFOLEN];
     unsigned int len = strlen(content);
     memset(buf, 0, sizeof(buf));
     int c_total = unishox2_compress_simple(content, len, buf);
 
     /* Fill the RDCP Payload with the Unishox2 content */
-    for (int i=0; i < c_total; i++) rdcp_response.payload.data[i+3] = buf[i];
+    for (int i=0; i < c_total; i++) rdcp_response.payload.data[i+RDCP_PAYLOAD_SIZE_SUBHEADER_CIRE] = buf[i];
 
     /* RDCP Payload length is subheader length (3) + Unishox2 length + AES-GMC AuthTag size (16) */
-    rdcp_response.header.rdcp_payload_length = 3 + c_total + 16;
+    rdcp_response.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_SUBHEADER_CIRE + c_total + RDCP_AESTAG_SIZE;
 
     /* AES-GCM encrypt the RDCP Payload */
     uint8_t ciphertext[256];
@@ -807,26 +808,26 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     iv[7] = rdcp_response.header.rdcp_payload_length;
     for (int i=0; i<additional_data_size; i++) additional_data[i] = iv[i];
 
-    encrypt_aes256gcm((uint8_t *) &rdcp_response.payload.data, rdcp_response.header.rdcp_payload_length - 16,
+    encrypt_aes256gcm((uint8_t *) &rdcp_response.payload.data, rdcp_response.header.rdcp_payload_length - RDCP_AESTAG_SIZE,
                       additional_data, additional_data_size, CFG.hqsharedsecret, 32, iv, 12,
-                      ciphertext, gcmauthtag, 16);
+                      ciphertext, gcmauthtag, RDCP_AESTAG_SIZE);
 
     /* Copy ciphertext and GCM AuthTag into the RDCP Payload */
-    for (int i=0; i<rdcp_response.header.rdcp_payload_length-16; i++) 
+    for (int i=0; i<rdcp_response.header.rdcp_payload_length-RDCP_AESTAG_SIZE; i++) 
         rdcp_response.payload.data[i] = ciphertext[i];
-    for (int i=0; i<16; i++) 
-        rdcp_response.payload.data[rdcp_response.header.rdcp_payload_length-16+i] = gcmauthtag[i];
+    for (int i=0; i<RDCP_AESTAG_SIZE; i++) 
+        rdcp_response.payload.data[rdcp_response.header.rdcp_payload_length-RDCP_AESTAG_SIZE+i] = gcmauthtag[i];
 
     /* Update CRC header field */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &rdcp_response.header, RDCP_HEADER_SIZE - 2);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &rdcp_response.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
-        data_for_crc[i + RDCP_HEADER_SIZE - 2] = rdcp_response.payload.data[i];
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + rdcp_response.header.rdcp_payload_length);
+        data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = rdcp_response.payload.data[i];
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
     int64_t random_delay = 0 - random(1000,2000);
-    uint8_t data_for_scheduler[256];
+    uint8_t data_for_scheduler[INFOLEN];
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];
@@ -844,7 +845,7 @@ void rdcp_command_fetch_from_neighbor(void)
 {
   serial_writeln("INFO: Preparing to fetch from neighbor");
 
-  uint16_t my_latest = 0x0000;
+  uint16_t my_latest = RDCP_OA_REFNR_SPECIAL_ZERO;
   for (int i=0; i < MAX_STORED_MSGS; i++)
   {
     if (mem.entries[i].reference_number > my_latest) my_latest = mem.entries[i].reference_number;
@@ -852,10 +853,10 @@ void rdcp_command_fetch_from_neighbor(void)
 
   rdcp_response.header.destination = CFG.neighbor_for_fetch;
   rdcp_response.header.message_type = RDCP_MSGTYPE_FETCH_ALL_NEW_MESSAGES;
-  rdcp_response.header.rdcp_payload_length = 2;
-  rdcp_response.header.relay1 = 0xEE;
-  rdcp_response.header.relay2 = 0xEE;
-  rdcp_response.header.relay3 = 0xEE;
+  rdcp_response.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_FANM;
+  rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+  rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+  rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
 
   rdcp_response.payload.data[0] = my_latest % 256;
   rdcp_response.payload.data[1] = my_latest / 256;
@@ -872,10 +873,10 @@ void rdcp_command_fetch_one_from_neighbor(uint16_t refnr)
 
   rdcp_response.header.destination = CFG.neighbor_for_fetch;
   rdcp_response.header.message_type = RDCP_MSGTYPE_FETCH_MESSAGE;
-  rdcp_response.header.rdcp_payload_length = 2;
-  rdcp_response.header.relay1 = 0xEE;
-  rdcp_response.header.relay2 = 0xEE;
-  rdcp_response.header.relay3 = 0xEE;
+  rdcp_response.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_FETCHONE;
+  rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+  rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+  rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
 
   rdcp_response.payload.data[0] = refnr % 256;
   rdcp_response.payload.data[1] = refnr / 256;
@@ -890,7 +891,7 @@ void rdcp_command_fetch_one_from_neighbor(uint16_t refnr)
 void rdcp_check_fetch_timeout(void)
 {
     /* On first run, set timeout only. */
-    if (fetch_timeout == 0)
+    if (fetch_timeout == RDCP_TIMESTAMP_ZERO)
     {
         fetch_timeout = my_millis() + 10 * MINUTES_TO_MILLISECONDS;
         return;
@@ -902,7 +903,7 @@ void rdcp_check_fetch_timeout(void)
         serial_writeln("INFO: Timeout when fetching memories from neighbor");
         serial_writeln("DA_FETCHTIMEOUT");
         currently_in_fetch_mode = false; 
-        fetch_timeout = 0;
+        fetch_timeout = RDCP_TIMESTAMP_ZERO;
     }
 
     return;

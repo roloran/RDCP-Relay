@@ -11,6 +11,11 @@
 #include <SchnorrSigVerify.h>
 #include <SHA256.h>
 
+#define RESULT_OK 0 
+#define RESULT_FAIL -1 
+#define POINT_LEN 33 
+#define SIG_LEN 32
+
 /**
 * Encrypts data with AES-256-GCM and writes output into out_ciphertext and out_tag. On success, returns true.
 * @param plaintext Plaintext to encrypt

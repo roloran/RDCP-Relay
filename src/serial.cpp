@@ -25,8 +25,8 @@ void setup_serial(void)
 
 void enable_bt(void)
 {
-  char devicename[128];
-  snprintf(devicename, 128, "RDCP-RL-%04X", CFG.rdcp_address);
+  char devicename[NONCENAMESIZE];
+  snprintf(devicename, NONCENAMESIZE, "RDCP-RL-%04X", CFG.rdcp_address);
   SerialBT.begin(devicename);
   SerialBT.setTimeout(10);
   CFG.bt_enabled = true;
@@ -97,21 +97,21 @@ String serial_readln(void)
 void serial_banner(void)
 {
   Serial.println(SERIAL_PREFIX "INFO: Firmware for scenario " FW_SCENARIO ", RDCP " FW_RDCP ", build " FW_VERSION ", " __DATE__ " " __TIME__);
-  char buf[LEN];
-  snprintf(buf, LEN, "%sINFO: Device RDCP address    : %04X (relay id %01X, %s)\0", SERIAL_PREFIX, CFG.rdcp_address, CFG.relay_identifier, CFG.name); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP OA relays  : %01X %01X %01X\0",           SERIAL_PREFIX, CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP CIRE relays: %01X %01X %01X\0",           SERIAL_PREFIX, CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%SINFO: Device TS7Relay1 value : %02X",                       SERIAL_PREFIX, CFG.ts7relay1); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device RDCP Fetch from : %04X\0",                     SERIAL_PREFIX, CFG.neighbor_for_fetch); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa frequency  : %.3f MHz, %.3f MHz\0",       SERIAL_PREFIX, CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa bandwidth  : %3.0f kHz, %3.0f kHz\0",     SERIAL_PREFIX, CFG.lora[CHANNEL433].bw, CFG.lora[CHANNEL868].bw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa SF         : %2d, %2d\0",                 SERIAL_PREFIX, CFG.lora[CHANNEL433].sf, CFG.lora[CHANNEL868].sf); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa CR         : 4/%d, 4/%d\0",               SERIAL_PREFIX, CFG.lora[CHANNEL433].cr, CFG.lora[CHANNEL868].cr); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa syncword   : 0x%02X, 0x%02X\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].sw, CFG.lora[CHANNEL868].sw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa TX power   : %d dBm, %d dBm\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].pw, CFG.lora[CHANNEL868].pw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device LoRa preamble   : %2d symbols, %2d symbols\0", SERIAL_PREFIX, CFG.lora[CHANNEL433].pl, CFG.lora[CHANNEL868].pl); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%sINFO: Device Options         : Relay %s, EP %s, Fwd %s, Fetch %s, Per868 %s, Send %s, BT %s", SERIAL_PREFIX,
+  char buf[INFOLEN];
+  snprintf(buf, INFOLEN, "%sINFO: Device RDCP address    : %04X (relay id %01X, %s)\0", SERIAL_PREFIX, CFG.rdcp_address, CFG.relay_identifier, CFG.name); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device RDCP OA relays  : %01X %01X %01X\0",           SERIAL_PREFIX, CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device RDCP CIRE relays: %01X %01X %01X\0",           SERIAL_PREFIX, CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%SINFO: Device TS7Relay1 value : %02X",                       SERIAL_PREFIX, CFG.ts7relay1); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device RDCP Fetch from : %04X\0",                     SERIAL_PREFIX, CFG.neighbor_for_fetch); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa frequency  : %.3f MHz, %.3f MHz\0",       SERIAL_PREFIX, CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa bandwidth  : %3.0f kHz, %3.0f kHz\0",     SERIAL_PREFIX, CFG.lora[CHANNEL433].bw, CFG.lora[CHANNEL868].bw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa SF         : %2d, %2d\0",                 SERIAL_PREFIX, CFG.lora[CHANNEL433].sf, CFG.lora[CHANNEL868].sf); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa CR         : 4/%d, 4/%d\0",               SERIAL_PREFIX, CFG.lora[CHANNEL433].cr, CFG.lora[CHANNEL868].cr); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa syncword   : 0x%02X, 0x%02X\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].sw, CFG.lora[CHANNEL868].sw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa TX power   : %d dBm, %d dBm\0",           SERIAL_PREFIX, CFG.lora[CHANNEL433].pw, CFG.lora[CHANNEL868].pw); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device LoRa preamble   : %2d symbols, %2d symbols\0", SERIAL_PREFIX, CFG.lora[CHANNEL433].pl, CFG.lora[CHANNEL868].pl); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
+  snprintf(buf, INFOLEN, "%sINFO: Device Options         : Relay %s, EP %s, Fwd %s, Fetch %s, Per868 %s, Send %s, BT %s", SERIAL_PREFIX,
     CFG.relay_enabled    ? "+" : "DISABLED",
     CFG.ep_enabled       ? "+" : "DISABLED", 
     CFG.forward_enabled  ? "+" : "DISABLED", 
@@ -120,7 +120,7 @@ void serial_banner(void)
     CFG.send_enabled     ? "+" : "DISABLED",
     CFG.bt_enabled       ? "+" : "DISABLED"
   ); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
-  snprintf(buf, LEN, "%SINFO: Device settings        : HI %" PRId32 "m, MPA %" PRId64 "h, PI %" PRId64 "m", SERIAL_PREFIX,
+  snprintf(buf, INFOLEN, "%SINFO: Device settings        : HI %" PRId32 "m, MPA %" PRId64 "h, PI %" PRId64 "m", SERIAL_PREFIX,
     CFG.heartbeat_interval / MINUTES_TO_MILLISECONDS, 
     CFG.max_periodic868_age / HOURS_TO_MILLISECONDS, 
     CFG.periodic_interval / MINUTES_TO_MILLISECONDS); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
@@ -132,7 +132,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
   s.trim();
   String s_uppercase = String(s);
   s_uppercase.toUpperCase();
-  char info[512];
+  char info[2*INFOLEN];
 
   /* Don't echo the Serial command if it starts with '!' */
   if (s.startsWith("!"))
@@ -148,7 +148,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     }
     else
     { // empty command == show current status
-      char status[256];
+      char status[INFOLEN];
       int64_t now = my_millis();
       int32_t free_heap = ESP.getFreeHeap();
       int32_t min_free_heap = ESP.getMinFreeHeap();
@@ -163,7 +163,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
       int minutes = seconds_within_this_hour / 60;
       int seconds = seconds_within_this_hour % 60;
 
-      snprintf(status, 256, "STATUS: Uptime %" PRId64 " ms (%d days %02d hours %02d minutes %02d seconds), Heap %d/%d", 
+      snprintf(status, INFOLEN, "STATUS: Uptime %" PRId64 " ms (%d days %02d hours %02d minutes %02d seconds), Heap %d/%d", 
         now, days, hours, minutes, seconds, min_free_heap, free_heap);
       serial_writeln(status);
       serial_writeln("READY");
@@ -221,7 +221,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].freq = f433;
       CFG.lora[CHANNEL868].freq = f868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa frequencies to %.3f MHz and %.3f MHz",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa frequencies to %.3f MHz and %.3f MHz",
         CFG.lora[CHANNEL433].freq, CFG.lora[CHANNEL868].freq);
       serial_writeln(info);
       setup_radio();
@@ -244,7 +244,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].bw = b433;
       CFG.lora[CHANNEL868].bw = b868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa bandwidth to %3.0f kHz and %3.0f kHz",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa bandwidth to %3.0f kHz and %3.0f kHz",
         CFG.lora[CHANNEL433].bw, CFG.lora[CHANNEL868].bw);
       serial_writeln(info);
       setup_radio();
@@ -268,7 +268,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].sf = s433;
       CFG.lora[CHANNEL868].sf = s868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa spreading factors to %d and %d",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa spreading factors to %d and %d",
         CFG.lora[CHANNEL433].sf, CFG.lora[CHANNEL868].sf);
       serial_writeln(info);
       setup_radio();
@@ -291,7 +291,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].cr = c433;
       CFG.lora[CHANNEL868].cr = c868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa coding rates to %d and %d",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa coding rates to %d and %d",
         CFG.lora[CHANNEL433].cr, CFG.lora[CHANNEL868].cr);
       serial_writeln(info);
       setup_radio();
@@ -317,7 +317,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].sw = s433;
       CFG.lora[CHANNEL868].sw = s868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa sync words to 0x%02X and 0x%02X",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa sync words to 0x%02X and 0x%02X",
         CFG.lora[CHANNEL433].sw, CFG.lora[CHANNEL868].sw);
       serial_writeln(info);
       setup_radio();
@@ -340,7 +340,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].pw = p433;
       CFG.lora[CHANNEL868].pw = p868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa TX power to %d dBm and %d dBm",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa TX power to %d dBm and %d dBm",
         CFG.lora[CHANNEL433].pw, CFG.lora[CHANNEL868].pw);
       serial_writeln(info);
       setup_radio();
@@ -363,7 +363,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     {
       CFG.lora[CHANNEL433].pl = p433;
       CFG.lora[CHANNEL868].pl = p868;
-      snprintf(info, 512, "INFO: Changed this device's LoRa preamble length to %d symbols and %d symbols",
+      snprintf(info, 2*INFOLEN, "INFO: Changed this device's LoRa preamble length to %d symbols and %d symbols",
         CFG.lora[CHANNEL433].pl, CFG.lora[CHANNEL868].pl);
       serial_writeln(info);
       setup_radio();
@@ -386,7 +386,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     p1.toCharArray(buffer, 32);
     uint16_t new_rdcp_address = strtol(buffer, NULL, 16);
     CFG.rdcp_address = new_rdcp_address;
-    snprintf(info, 256, "INFO: Changed this device's RDCP address to %04X", CFG.rdcp_address);
+    snprintf(info, INFOLEN, "INFO: Changed this device's RDCP address to %04X", CFG.rdcp_address);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -397,7 +397,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     p1.toCharArray(buffer, 32);
     uint16_t new_rdcp_address = strtol(buffer, NULL, 16);
     CFG.neighbor_for_fetch = new_rdcp_address;
-    snprintf(info, 256, "INFO: Changed this device's neighbor to fetch from to %04X", CFG.neighbor_for_fetch);
+    snprintf(info, INFOLEN, "INFO: Changed this device's neighbor to fetch from to %04X", CFG.neighbor_for_fetch);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -409,7 +409,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     p1.toCharArray(buffer, 32);
     uint8_t new_relay_id = strtol(buffer, NULL, 16);
     CFG.relay_identifier = new_relay_id;
-    snprintf(info, 256, "INFO: Changed this device's relay identifier to %01X", CFG.relay_identifier);
+    snprintf(info, INFOLEN, "INFO: Changed this device's relay identifier to %01X", CFG.relay_identifier);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -423,7 +423,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     CFG.oarelays[0] = (oa_relays & 0x00000F00) >> 8;
     CFG.oarelays[1] = (oa_relays & 0x000000F0) >> 4;
     CFG.oarelays[2] = (oa_relays & 0x0000000F);
-    snprintf(info, 256, "INFO: Changed this device's OA relay peers to %01X, %01X, %01X", CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]);
+    snprintf(info, INFOLEN, "INFO: Changed this device's OA relay peers to %01X, %01X, %01X", CFG.oarelays[0], CFG.oarelays[1], CFG.oarelays[2]);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -437,7 +437,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     CFG.cirerelays[0] = (cire_relays & 0x00000F00) >> 8;
     CFG.cirerelays[1] = (cire_relays & 0x000000F0) >> 4;
     CFG.cirerelays[2] = (cire_relays & 0x0000000F);
-    snprintf(info, 256, "INFO: Changed this device's CIRE relay peers to %01X, %01X, %01X", CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]);
+    snprintf(info, INFOLEN, "INFO: Changed this device's CIRE relay peers to %01X, %01X, %01X", CFG.cirerelays[0], CFG.cirerelays[1], CFG.cirerelays[2]);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -450,7 +450,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     p1.toCharArray(buffer, 32);
     uint8_t ts7r = strtol(buffer, NULL, 16);
     CFG.ts7relay1 = ts7r;
-    snprintf(info, 256, "INFO: Changed this device's Timeslot7 Relay1 value to %02X", CFG.ts7relay1);
+    snprintf(info, INFOLEN, "INFO: Changed this device's Timeslot7 Relay1 value to %02X", CFG.ts7relay1);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -475,7 +475,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     CFG.multicast[2] = strtol(buffer3, NULL, 16);
     CFG.multicast[3] = strtol(buffer4, NULL, 16);
     CFG.multicast[4] = strtol(buffer5, NULL, 16);
-    snprintf(info, 256, "INFO: Set multicast addresses to %04X, %04X, %04X, %04X, %04X",
+    snprintf(info, INFOLEN, "INFO: Set multicast addresses to %04X, %04X, %04X, %04X, %04X",
       CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]);
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
@@ -611,10 +611,10 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
       for (int i=0; i != decoded_length; i++) lorapacket_in_sim.payload[i] = decoded_string[i];
 
       serial_writeln("INFO: LoRa Radio SIM received packet.");
-      char serialtext[255];
-      sprintf(serialtext, "RXMETA %d %d %d %.3f\0", decoded_length, 0, 100, CFG.lora[channel].freq);
+      char serialtext[INFOLEN];
+      snprintf(serialtext, INFOLEN, "RXMETA %d %d %d %.3f\0", decoded_length, 0, 100, CFG.lora[channel].freq);
       serial_writeln(serialtext);
-      sprintf(serialtext, "RX %s\0", buffer);
+      snprintf(serialtext, INFOLEN, "RX %s\0", buffer);
       serial_writeln(serialtext);
     }
     else
@@ -638,8 +638,8 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     uint8_t subtype = (uint8_t)  strtol(b1, NULL, 16);
     uint16_t refnum = (uint16_t) strtol(b2, NULL, 16);
 
-    char b[256];
-    snprintf(b, 256, "INFO: Preparing to send CITIZEN REPORT (subtype %d, refnr %d)", subtype, refnum);
+    char b[INFOLEN];
+    snprintf(b, INFOLEN, "INFO: Preparing to send CITIZEN REPORT (subtype %d, refnr %d)", subtype, refnum);
     serial_writeln(b);
     rdcp_send_cire(subtype, refnum, b3);
   }
@@ -656,10 +656,10 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
   else if (s_uppercase.startsWith("NAME "))
   {
     String p1 = s.substring(5);
-    char daname[128];
-    p1.toCharArray(daname, 128);
-    char buffer[256];
-    snprintf(buffer, 256, "INFO: Device name set to %s", daname);
+    char daname[INFOLEN];
+    p1.toCharArray(daname, INFOLEN);
+    char buffer[INFOLEN];
+    snprintf(buffer, INFOLEN, "INFO: Device name set to %s", daname);
     serial_writeln(buffer);
     snprintf(CFG.name, 64, "%s", daname);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
@@ -667,10 +667,10 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
   else if (s_uppercase.startsWith("HQPUBKEY "))
   {
     String p1 = s.substring(9);
-    char buffer[256];
-    p1.toCharArray(buffer, 256);
-    snprintf(CFG.hqpubkey, 256, "%s", buffer);
-    snprintf(buffer, 256, "INFO: HQ Public Key set");
+    char buffer[INFOLEN];
+    p1.toCharArray(buffer, INFOLEN);
+    snprintf(CFG.hqpubkey, INFOLEN, "%s", buffer);
+    snprintf(buffer, INFOLEN, "INFO: HQ Public Key set");
     serial_writeln(buffer);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
@@ -706,7 +706,7 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     uint8_t bat2 = p2.toInt();
     DART.battery1 = bat1;
     DART.battery2 = bat2; 
-    snprintf(info, 512, "INFO: Update reportable battery status to %d and %d", DART.battery1, DART.battery2);
+    snprintf(info, INFOLEN, "INFO: Update reportable battery status to %d and %d", DART.battery1, DART.battery2);
     serial_writeln(info);
   }
   else

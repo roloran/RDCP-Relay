@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "lora.h"
+#include "rdcp-common.h"
 
 #define MAX_STORED_MSGS 32
 
@@ -10,8 +11,8 @@ struct rdcp_memory_entry {
     bool slot_used            = false; 
     uint8_t payload[MAX_LORA_PAYLOAD_SIZE];
     uint8_t payload_length    = 0;
-    uint16_t reference_number = 0;
-    int64_t timestamp_added   = 0;
+    uint16_t reference_number = RDCP_OA_REFNR_SPECIAL_ZERO;
+    int64_t timestamp_added   = RDCP_TIMESTAMP_ZERO;
     bool used_in_fetch_single = false;
     bool used_in_fetch_all    = false;
     bool used_in_periodic868  = false;
@@ -25,8 +26,8 @@ struct rdcp_memory_table {
 struct runtime_da_data {
     uint8_t battery1 = 255;
     uint8_t battery2 = 255;
-    uint16_t num_rdcp_rx = 0x0000;
-    uint16_t num_rdcp_tx = 0x0000;
+    uint16_t num_rdcp_rx = 0;
+    uint16_t num_rdcp_tx = 0;
 };
 
 /**

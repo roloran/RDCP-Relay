@@ -8,15 +8,15 @@
   * Data structure for a TX Queue entry.
   */
 struct txqueue_entry {
-  uint8_t payload[RDCP_HEADER_SIZE + RDCP_MAX_PAYLOAD_SIZE];       //< data of the outgoing message
+  uint8_t payload[RDCP_HEADER_SIZE + RDCP_MAX_PAYLOAD_SIZE];      //< data of the outgoing message
   uint8_t payload_length = 0;                   //< length of the outgoing message
-  int64_t currently_scheduled_time = 0;         //< timestamp when to transmit
-  int64_t originally_scheduled_time = 0;        //< timestamp when originally planned to transmit
+  int64_t currently_scheduled_time = RDCP_TIMESTAMP_ZERO;         //< timestamp when to transmit
+  int64_t originally_scheduled_time = RDCP_TIMESTAMP_ZERO;        //< timestamp when originally planned to transmit
   uint8_t num_of_reschedules = 0;               //< how often the entry has already been rescheduled
   bool important = false;                       //< message is important and should not be dropped even it if takes longer
   bool force_tx = false;                        //< indicator whether message should be sent independend of CAD status
   uint8_t callback_selector = TX_CALLBACK_NONE; //< which callback function to use when TX is finished
-  int64_t timeslot_duration =  0;               //< timeslot duration in milliseconds including retransmissions
+  int64_t timeslot_duration = RDCP_DURATION_ZERO;                 //< timeslot duration in milliseconds including retransmissions
   uint8_t cad_retry = 0;                        //< CAD retry attempt number
   bool waiting = false;                         //< message is still waiting to be sent
   bool in_process = false;                      //< this message is currently being processed
@@ -39,7 +39,7 @@ struct txqueue {
 struct txaheadqueue_entry {
   uint8_t payload[RDCP_MAX_PAYLOAD_SIZE];       //< data of the outgoing message
   uint8_t payload_length = 0;                   //< length of the outgoing message
-  int64_t scheduled_time = 0;                   //< timestamp when to move to the TX Queue
+  int64_t scheduled_time = RDCP_TIMESTAMP_ZERO; //< timestamp when to move to the TX Queue
   bool important = false;                       //< message is important and should not be dropped even it if takes longer
   bool force_tx = false;                        //< indicator whether message should be sent independend of CAD status
   uint8_t callback_selector = TX_CALLBACK_NONE; //< which callback function to use when TX is finished

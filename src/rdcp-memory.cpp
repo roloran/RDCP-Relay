@@ -16,11 +16,11 @@ runtime_da_data DART;
 
 void rdcp_memory_remember(void)
 {
-    int index = -1;
+    int index = RDCP_INDEX_NONE;
 
     /* Check for duplicates. Only store unique memories. */
     bool is_dupe = false;
-    uint16_t this_refnr = 0x0000;
+    uint16_t this_refnr = RDCP_OA_REFNR_SPECIAL_ZERO;
     if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT)
     {
         this_refnr = rdcp_msg_in.payload.data[1] + 256 * rdcp_msg_in.payload.data[2];
@@ -44,14 +44,14 @@ void rdcp_memory_remember(void)
     }
 
     /* Proceed to store the memory. */
-    if (mem.idx_first == -1)
+    if (mem.idx_first == RDCP_INDEX_NONE)
     { // no messages stored yet
         index = 0;
         mem.idx_first = index;
     }
     else 
     { // look for free slots
-        int free_slot = -1;
+        int free_slot = RDCP_INDEX_NONE;
         for (int i=0; i<MAX_STORED_MSGS; i++)
         {
             if (mem.entries[i].slot_used == false)
@@ -61,7 +61,7 @@ void rdcp_memory_remember(void)
             }
         }
 
-        if (free_slot != -1)
+        if (free_slot != RDCP_INDEX_NONE)
         { // free slot found
             index = free_slot;
         }
@@ -78,7 +78,7 @@ void rdcp_memory_remember(void)
     for (int i=0; i<current_lora_message.payload_length; i++)
         mem.entries[index].payload[i] = current_lora_message.payload[i];
 
-    uint16_t refnr = 0x0000;
+    uint16_t refnr = RDCP_OA_REFNR_SPECIAL_ZERO;
     if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT)
     {
         refnr = rdcp_msg_in.payload.data[1] + 256 * rdcp_msg_in.payload.data[2];
@@ -98,27 +98,27 @@ void rdcp_memory_forget(void)
     for (int i=0; i<MAX_STORED_MSGS; i++)
     {
         mem.entries[i].slot_used = false;
-        mem.entries[i].timestamp_added = 0;
-        mem.entries[i].reference_number = 0;
+        mem.entries[i].timestamp_added = RDCP_TIMESTAMP_ZERO;
+        mem.entries[i].reference_number = RDCP_OA_REFNR_SPECIAL_ZERO;
         mem.entries[i].payload_length = 0;
         mem.entries[i].used_in_fetch_all = false;
         mem.entries[i].used_in_fetch_single = false;
         mem.entries[i].used_in_periodic868 = false;
     }
-    mem.idx_first = -1;
+    mem.idx_first = RDCP_INDEX_NONE;
     return;
 }
 
 void rdcp_memory_dump(void)
 {
-    char info[256];
-    snprintf(info, 256, "INFO: Begin of memorized RDCP Messages dump, idx_first = %d", mem.idx_first);
+    char info[INFOLEN];
+    snprintf(info, INFOLEN, "INFO: Begin of memorized RDCP Messages dump, idx_first = %d", mem.idx_first);
     serial_writeln(info);
     for (int i=0; i<MAX_STORED_MSGS; i++)
     {
         if (mem.entries[i].slot_used)
         {
-            snprintf(info, 256, "INFO: Memory %02d,%03d,%04X,", i, mem.entries[i].payload_length, mem.entries[i].reference_number);
+            snprintf(info, INFOLEN, "INFO: Memory %02d,%03d,%04X,", i, mem.entries[i].payload_length, mem.entries[i].reference_number);
             serial_write(info);
             serial_write_base64((char *)mem.entries[i].payload, mem.entries[i].payload_length, true);
         }

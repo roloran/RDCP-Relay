@@ -10,17 +10,7 @@
 
 #define SERIAL_PREFIX "DA: "
 
-#define LEN 256
-
-/*
-struct simrx_data {
-    bool     available = false;
-    uint8_t  buffer[512];
-    uint16_t length = 0;
-    int64_t  timestamp = 0;
-    uint8_t  channel = CHANNEL433;
-};
-*/
+#define INFOLEN 256
 
 /**
  * Open the Serial port for I/O with default settings.

@@ -27,8 +27,8 @@ int rdcp_check_relay_designation(void)
 
     if (result > -1)
     {
-        char info[256]; 
-        snprintf(info, 256, "INFO: Relay designation with a delay of %d timeslots", result); 
+        char info[INFOLEN]; 
+        snprintf(info, INFOLEN, "INFO: Relay designation with a delay of %d timeslots", result); 
         serial_writeln(info);
     }
 
@@ -146,62 +146,62 @@ void rdcp_schedule_relayed_message(int relay_delay)
     {
         r.header.relay1 = (my_relay1 << 4) + 2; 
         r.header.relay2 = (my_relay2 << 4) + 3;
-        r.header.relay3 = 0xEE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 2)
     {
         r.header.relay1 = (my_relay1 << 4) + 3; 
         r.header.relay2 = (my_relay2 << 4) + 4;
-        r.header.relay3 = 0xEE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 3)
     {
         r.header.relay1 = 0xE4;
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 4)
     {
         r.header.relay1 = (my_relay1 << 4) + 3; 
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 5)
     {
         r.header.relay1 = 0xE2;
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 6)
     {
         r.header.relay1 = 0xE1;
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 7)
     {
         r.header.relay1 = CFG.ts7relay1;
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
     else if (myts == 8)
     {
-        r.header.relay1 = 0xEE;
-        r.header.relay2 = 0xEE;
-        r.header.relay3 = 0xEE;
+        r.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        r.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
 
     /* Update CRC header field */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - 2);
-    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - 2] = r.payload.data[i];
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + r.header.rdcp_payload_length);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
+    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = r.payload.data[i];
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + r.header.rdcp_payload_length);
     r.header.checksum = actual_crc;
 
     /* Pass the message to the scheduler */
     if (CFG.relay_enabled)
     {
-        uint8_t data_for_scheduler[256];
+        uint8_t data_for_scheduler[INFOLEN];
         memcpy(&data_for_scheduler, &r.header, RDCP_HEADER_SIZE);
         for (int i=0; i < r.header.rdcp_payload_length; i++) 
             data_for_scheduler[i + RDCP_HEADER_SIZE] = r.payload.data[i];
@@ -223,8 +223,8 @@ void rdcp_schedule_relayed_message(int relay_delay)
                 important = NOTIMPORTANT;
                 int64_t now = my_millis();
                 my_timeslot_begin = 0 - ((my_timeslot_begin - now) + (rdcp_get_channel_free_estimation(CHANNEL433) - now));
-                char info[256];
-                snprintf(info, 256, "INFO: Postponing relaying of conflicting message by %" PRId64 " ms after CFEst433", 
+                char info[INFOLEN];
+                snprintf(info, INFOLEN, "INFO: Postponing relaying of conflicting message by %" PRId64 " ms after CFEst433", 
                     -1 * my_timeslot_begin);
                 serial_writeln(info);
             }

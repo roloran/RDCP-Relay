@@ -6,9 +6,9 @@
 #define MAX_DEVICE_BLOCKS 128
 
 struct device_block_entry {
-    uint16_t address   = 0x0000; /// affected device
-    uint16_t duration  = 0;      /// block duration in minutes
-    int64_t  timestamp = 0;      /// timestamp of when entry was added/updated
+    uint16_t address   = RDCP_ADDRESS_SPECIAL_ZERO; /// affected device
+    uint16_t duration  = RDCP_DURATION_ZERO;        /// block duration in minutes
+    int64_t  timestamp = RDCP_TIMESTAMP_ZERO;       /// timestamp of when entry was added/updated
 };
 
 /**

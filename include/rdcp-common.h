@@ -13,6 +13,55 @@
 /// RDCP v0.4 fixed HQ multicast address
 #define RDCP_HQ_MULTICAST_ADDRESS 0x00FF
 
+#define RDCP_ADDRESS_MG_LOWERBOUND 0x0300 
+#define RDCP_ADDRESS_MG_UPPERBOUND 0xFEFF
+#define RDCP_ADDRESS_MULTICAST_LOWERBOUND 0xB000
+#define RDCP_ADDRESS_MULTICAST_UPPERBOUND 0xBFFF
+
+#define RDCP_ADDRESS_HQ_LOWERBOUND    0x0001 
+#define RDCP_ADDRESS_HQ_UPPERBOUND    0x00FF
+#define RDCP_ADDRESS_SPECIAL_ZERO     0x0000
+#define RDCP_OA_REFNR_SPECIAL_ZERO    0x0000
+#define RDCP_SEQUENCENR_SPECIAL_ZERO  0x0000
+#define RDCP_ADDRESS_SPECIAL_MAX      0xFFFF
+#define RDCP_ADDRESS_BBKDA_LOWERBOUND 0x0100
+
+#define RDCP_HEADER_RELAY_MAGIC_EP 0xEE
+#define RDCP_HEADER_RELAY_MAGIC_NONE 0xEE
+
+#define RDCP_PAYLOAD_SIZE_ACK_UNSIGNED        3
+#define RDCP_PAYLOAD_SIZE_ECHO_RESPONSE       0
+#define RDCP_PAYLOAD_SIZE_INLINE_BLOCKDEVICE  4
+#define RDCP_PAYLOAD_SIZE_INLINE_TIMESTAMP    6
+#define RDCP_PAYLOAD_SIZE_INLINE_DEVICERESET  2
+#define RDCP_PAYLOAD_SIZE_INLINE_DEVICEREBOOT 2
+#define RDCP_PAYLOAD_SIZE_INLINE_MAINTENANCE  2
+#define RDCP_PAYLOAD_SIZE_INLINE_INFRARESET   2
+#define RDCP_PAYLOAD_SIZE_INLINE_RTC          3
+#define RDCP_PAYLOAD_SIZE_SUBHEADER_CIRE      3
+#define RDCP_PAYLOAD_SIZE_FANM                2
+#define RDCP_PAYLOAD_SIZE_FETCHONE            2
+#define RDCP_PAYLOAD_SIZE_MG_HEARTBEAT        4
+
+#define RDCP_CRC_SIZE 2
+#define RDCP_AESTAG_SIZE 16
+
+#define NRT_LEVEL_LOW    0
+#define NRT_LEVEL_MIDDLE 2
+#define NRT_LEVEL_HIGH   4
+
+#define SHABUFSIZE 32 
+#define SIGBUFSIZE 128
+#define NONCENAMESIZE 64
+
+#define BIAS_RSSI 200 
+#define BIAS_SNR  100
+
+#define RDCP_TIMESTAMP_ZERO 0
+#define RDCP_DURATION_ZERO  0
+#define RDCP_INDEX_NONE    -1
+#define RDCP_INDEX_FIRST    0
+
 /// RDCP v0.4 fixed maximum LoRa Payload size
 #define RDCP_MAX_PAYLOAD_SIZE 200
 
@@ -83,17 +132,18 @@ bool rdcp_check_crc_in(uint8_t real_packet_length);
   * Data structure for Duplicate Table entries
   */
 struct rdcp_dup_table_entry {
-  uint16_t origin = 0x0000;          //< Origin from the RDCP Header
-  uint16_t sequence_number = 0x0000; //< SequenceNumber from the RDCP Header
-  int64_t last_seen = 0;             //< Timestamp of when the entry was last updated
+  uint16_t origin = RDCP_ADDRESS_SPECIAL_ZERO; //< Origin from the RDCP Header
+  uint16_t sequence_number = RDCP_SEQUENCENR_SPECIAL_ZERO; //< SequenceNumber from the RDCP Header
+  int64_t last_seen = RDCP_TIMESTAMP_ZERO; //< Timestamp of when the entry was last updated
 };
   
+#define NUM_DUPETABLE_ENTRIES 256
 /**
   * Data structure for the overall Duplicate Table
   */
 struct rdcp_dup_table {
   unsigned short num_entries = 0;              //< Number of currently stored entries
-  struct rdcp_dup_table_entry tableentry[256]; //< Array of Duplicate Table entries
+  struct rdcp_dup_table_entry tableentry[NUM_DUPETABLE_ENTRIES]; //< Array of Duplicate Table entries
 };
   
 /**
@@ -242,10 +292,10 @@ int rdcp_get_number_of_tracked_propagation_cycles(void);
 #define MAX_TRACKED_PCS      10
 
 struct tracked_propagation_cycle {
-  uint16_t origin = 0x0000;
-  uint16_t seqnr  = 0x0000;
-  int64_t  timestamp_end = 0;
-  int64_t  timestamp_known = 0;
+  uint16_t origin = RDCP_ADDRESS_SPECIAL_ZERO;
+  uint16_t seqnr  = RDCP_SEQUENCENR_SPECIAL_ZERO;
+  int64_t  timestamp_end = RDCP_TIMESTAMP_ZERO;
+  int64_t  timestamp_known = RDCP_TIMESTAMP_ZERO;
   uint8_t  status = PC_STATUS_NONE;
 };
 

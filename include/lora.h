@@ -93,7 +93,7 @@ struct lora_message {
     double  rssi = 0.0;
     double  snr = 0.0;
     uint8_t channel = CHANNEL433;
-    int64_t timestamp = 0;
+    int64_t timestamp = RDCP_TIMESTAMP_ZERO;
 };
   
 /**

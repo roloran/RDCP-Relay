@@ -6,11 +6,11 @@
 
 struct callback_chain {
     bool     in_use        = false;  /// chain currently in use?
-    int64_t  timeout       = 0;      /// timeout timestamp if callback isn't triggered
-    int64_t  activity      = 0;      /// when did we start the most recent activity?
-    uint16_t refnr         = 0x0000; /// relevant OA reference number
-    uint16_t destination   = 0x0000; /// RDCP address of destination, if any
-    int      last_mem_idx  = -1;     /// "memory" index of last sent message
+    int64_t  timeout       = RDCP_DURATION_ZERO;         /// timeout timestamp if callback isn't triggered
+    int64_t  activity      = RDCP_TIMESTAMP_ZERO;        /// when did we start the most recent activity?
+    uint16_t refnr         = RDCP_OA_REFNR_SPECIAL_ZERO; /// relevant OA reference number
+    uint16_t destination   = RDCP_ADDRESS_SPECIAL_ZERO;  /// RDCP address of destination, if any
+    int      last_mem_idx  = RDCP_INDEX_NONE;            /// "memory" index of last sent message
 };
 
 /**
