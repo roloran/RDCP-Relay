@@ -24,15 +24,15 @@ void rdcp_neighbor_dump(void);
 
 struct neighbor_table_entry {
     uint8_t channel   = CHANNEL433;
-    uint16_t sender   = 0x0000;
+    uint16_t sender   = RDCP_ADDRESS_SPECIAL_ZERO;
     double rssi       = 0.0;
     double snr        = 0.0;
-    int64_t timestamp = 0;
+    int64_t timestamp = RDCP_TIMESTAMP_ZERO;
     bool heartbeat    = false;      // has sent an explitit Heartbeat  
     bool counted      = false;      // has been counted for DA Status Response
     bool explicit_refnr = false;    // has sent an explicit latest OA RefNr
-    uint16_t latest_refnr = 0x0000; // OA RefNr reported by MG
-    uint16_t roamingrec = 0x0000;   // Roaming Recommendation reported by MG
+    uint16_t latest_refnr = RDCP_OA_REFNR_SPECIAL_ZERO; // OA RefNr reported by MG
+    uint16_t roamingrec = RDCP_ADDRESS_SPECIAL_ZERO; // Roaming Recommendation reported by MG
 };
 
 #endif 

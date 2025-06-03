@@ -6,17 +6,17 @@ neighbor_table_entry neighbors[MAX_NEIGHBORS];
 
 void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, double snr, int64_t timestamp, bool heartbeat, bool explicit_refnr, uint16_t latest_refnr, uint16_t roamingrec)
 {
-    int index = -1;
+    int index = RDCP_INDEX_NONE;
     for (int i=0; i<MAX_NEIGHBORS; i++)
     {
-        if ((neighbors[i].sender == 0x0000) || (neighbors[i].sender == sender))
+        if ((neighbors[i].sender == RDCP_ADDRESS_SPECIAL_ZERO) || (neighbors[i].sender == sender))
         {
             index = i;
             break;
         } 
     }
 
-    if (index == -1)
+    if (index == RDCP_INDEX_NONE)
     {
         serial_writeln("WARNING: Neighbor table overflow - increase size!");
         return;
@@ -38,15 +38,15 @@ void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, do
 
 void rdcp_neighbor_dump(void)
 {
-    char info[256];
+    char info[INFOLEN];
     int64_t now = my_millis();
     serial_writeln("INFO: Begin of neighbor table dump");
     for (int i=0; i<MAX_NEIGHBORS; i++)
     {
-        if (neighbors[i].sender != 0x0000)
+        if (neighbors[i].sender != RDCP_ADDRESS_SPECIAL_ZERO)
         {
-            int mytime = (int) ((now - neighbors[i].timestamp) / (1000 * 60));
-            snprintf(info, 256, "INFO: Neighbor %d,%04X,%d,%.0f,%.0f,%c,%c,%04X,%04X,%dm",
+            int mytime = (int) ((now - neighbors[i].timestamp) / (MINUTES_TO_MILLISECONDS));
+            snprintf(info, INFOLEN, "INFO: Neighbor %d,%04X,%d,%.0f,%.0f,%c,%c,%04X,%04X,%dm",
                      i, neighbors[i].sender, neighbors[i].channel == CHANNEL433 ? 433:868,
                      neighbors[i].rssi, neighbors[i].snr, 
                      neighbors[i].heartbeat ? 'H':'-', 

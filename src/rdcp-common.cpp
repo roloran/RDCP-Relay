@@ -14,9 +14,9 @@ extern da_config CFG;
 extern lora_message current_lora_message;
 struct rdcp_dup_table dupe_table;              // One global RDCP Message Duplicate Table
 
-uint16_t most_recent_airtime = 0;
+uint16_t most_recent_airtime = RDCP_TIMESTAMP_ZERO;
 uint8_t  most_recent_future_timeslots = 0;
-int64_t  contributed_propagation_cycle_end = 0;
+int64_t  contributed_propagation_cycle_end = RDCP_TIMESTAMP_ZERO;
 
 tracked_propagation_cycle propagation_cycles[MAX_TRACKED_PCS];
 
@@ -45,11 +45,11 @@ bool rdcp_update_channel_free_estimation(uint8_t channel, int64_t new_value)
 
 uint8_t rdcp_get_default_retransmission_counter_for_messagetype(uint8_t mt)
 {
-  uint8_t nrt = 0;
+  uint8_t nrt = NRT_LEVEL_LOW;
   if ( (mt == RDCP_MSGTYPE_INFRASTRUCTURE_RESET) || (mt == RDCP_MSGTYPE_ACK) ||
-       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = 2;
+       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = NRT_LEVEL_MIDDLE;
   if ( (mt == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT) || (mt == RDCP_MSGTYPE_CITIZEN_REPORT) ||
-       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = 4;
+       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = NRT_LEVEL_HIGH;
   return nrt;
 }
 
@@ -60,18 +60,18 @@ void rdcp_update_cfest_in(uint16_t origin, uint16_t seqnr)
 
   uint32_t remaining_current_sender_time = airtime_with_buffer * rdcp_msg_in.header.counter;
 
-  uint8_t nrt = 0;
+  uint8_t nrt = NRT_LEVEL_LOW;
   uint8_t mt = rdcp_msg_in.header.message_type;
   if ( (mt == RDCP_MSGTYPE_INFRASTRUCTURE_RESET) || (mt == RDCP_MSGTYPE_ACK) ||
-       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = 2;
+       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = NRT_LEVEL_MIDDLE;
   if ( (mt == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT) || (mt == RDCP_MSGTYPE_CITIZEN_REPORT) ||
-       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = 4;
+       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = NRT_LEVEL_HIGH;
 
   uint32_t timeslot_duration = (nrt+1) * airtime_with_buffer;
 
   uint8_t future_timeslots = 0;
 
-  if ((rdcp_msg_in.header.sender < 0x0300) && (rdcp_msg_in.header.sender >= 0x0100))
+  if ((rdcp_msg_in.header.sender < RDCP_ADDRESS_MG_LOWERBOUND) && (rdcp_msg_in.header.sender >= RDCP_ADDRESS_BBKDA_LOWERBOUND))
   { // DA or BBK sending
     if ((rdcp_msg_in.header.relay1 & 0x0F) == 0x00) future_timeslots = 8;
     if ((rdcp_msg_in.header.relay1 & 0x0F) == 0x02) future_timeslots = 7;
@@ -95,8 +95,8 @@ void rdcp_update_cfest_in(uint16_t origin, uint16_t seqnr)
   rdcp_update_channel_free_estimation(current_lora_message.channel, channel_free_at);
   if (current_lora_message.channel == CHANNEL433) rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_KNOWN);
 
-  char buf[256];
-  snprintf(buf, 256, "INFO: Channel %d CFEst4current (in): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
+  char buf[INFOLEN];
+  snprintf(buf, INFOLEN, "INFO: Channel %d CFEst4current (in): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
     (current_lora_message.channel == CHANNEL433) ? 433 : 868, 
     channel_free_after, channel_free_at, airtime, remaining_current_sender_time, timeslot_duration, future_timeslots);
   serial_writeln(buf);
@@ -106,10 +106,10 @@ void rdcp_update_cfest_in(uint16_t origin, uint16_t seqnr)
 
 void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uint16_t seqnr, uint8_t status)
 {
-  int index = -1;
+  int index = RDCP_INDEX_NONE;
   int64_t now = my_millis();
   bool newpc = false;
-  char info[256];
+  char info[INFOLEN];
 
   for (int i=0; i < MAX_TRACKED_PCS; i++)
   {
@@ -119,7 +119,7 @@ void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uin
         (PC_STATUS_NONE != propagation_cycles[i].status)) index = i;
   }
 
-  if (index == -1)
+  if (index == RDCP_INDEX_NONE)
   {
     newpc = true;
     for (int i=0; i < MAX_TRACKED_PCS; i++)
@@ -128,7 +128,7 @@ void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uin
     }
   }
 
-  if (index == -1)
+  if (index == RDCP_INDEX_NONE)
   {
     serial_writeln("WARNING: Failed to track propagation cycle");
     return;
@@ -154,7 +154,7 @@ void rdcp_track_propagation_cycles(int64_t channel_free_at, uint16_t origin, uin
   {
     if (propagation_cycles[i].status != PC_STATUS_NONE)
     {
-      snprintf(info, 256, "INFO: Propagation cycle i%d %04X-%04X ongoing for %" PRId64 " ms", 
+      snprintf(info, INFOLEN, "INFO: Propagation cycle i%d %04X-%04X ongoing for %" PRId64 " ms", 
         i, 
         propagation_cycles[i].origin, propagation_cycles[i].seqnr,
         propagation_cycles[i].timestamp_end - now);
@@ -169,7 +169,7 @@ int rdcp_get_number_of_tracked_propagation_cycles(void)
 {
   int result = 0;
   int64_t now = my_millis();
-  char info[256];
+  char info[INFOLEN];
 
   for (int i=0; i < MAX_TRACKED_PCS; i++)
   {
@@ -177,7 +177,7 @@ int rdcp_get_number_of_tracked_propagation_cycles(void)
         (propagation_cycles[i].timestamp_end > now))
     {
       result++;
-      snprintf(info, 256, "INFO: Tracking propagation cycle i%d %04X-%04X, %" PRId64 " ms, as %s (known for %" PRId64 " ms)",
+      snprintf(info, INFOLEN, "INFO: Tracking propagation cycle i%d %04X-%04X, %" PRId64 " ms, as %s (known for %" PRId64 " ms)",
         i, propagation_cycles[i].origin, propagation_cycles[i].seqnr, 
         propagation_cycles[i].timestamp_end - now,
         propagation_cycles[i].status == PC_STATUS_CONTRIBUTOR ? "contributor" : "listener", 
@@ -195,11 +195,11 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
 
   uint32_t remaining_current_sender_time = airtime_with_buffer * (rcnt+1);
 
-  uint8_t nrt = 0;
+  uint8_t nrt = NRT_LEVEL_LOW;
   if ( (mt == RDCP_MSGTYPE_INFRASTRUCTURE_RESET) || (mt == RDCP_MSGTYPE_ACK) ||
-       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = 2;
+       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = NRT_LEVEL_MIDDLE;
   if ( (mt == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT) || (mt == RDCP_MSGTYPE_CITIZEN_REPORT) ||
-       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = 4;
+       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = NRT_LEVEL_HIGH;
 
   uint32_t timeslot_duration = (nrt+1) * airtime_with_buffer;
 
@@ -230,8 +230,8 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
   rdcp_update_channel_free_estimation(channel, channel_free_at);
   rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_CONTRIBUTOR);
 
-  char buf[256];
-  snprintf(buf, 256, "INFO: Channel %d CFEst4current (out): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
+  char buf[INFOLEN];
+  snprintf(buf, INFOLEN, "INFO: Channel %d CFEst4current (out): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
     (channel == CHANNEL433) ? 433 : 868, 
     channel_free_after, channel_free_at, airtime, remaining_current_sender_time, timeslot_duration, future_timeslots);
   serial_writeln(buf);
@@ -242,7 +242,7 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
 bool rdcp_propagation_cycle_duplicate(void)
 {
   int64_t now = my_millis();
-  char info[256];
+  char info[INFOLEN];
 
   /* 
      We are within an ongoing propagation cycle if we actively contributed to it 
@@ -251,7 +251,7 @@ bool rdcp_propagation_cycle_duplicate(void)
   */
   if ((now + 1 * SECONDS_TO_MILLISECONDS) < contributed_propagation_cycle_end)
   {
-    snprintf(info, 256, "INFO: Contributed propagation cycle ends in %" PRId64 " ms", contributed_propagation_cycle_end - now);
+    snprintf(info, INFOLEN, "INFO: Contributed propagation cycle ends in %" PRId64 " ms", contributed_propagation_cycle_end - now);
     serial_writeln(info);
     return true;
   }
@@ -302,12 +302,12 @@ int64_t rdcp_get_timeslot_duration(uint8_t channel, uint8_t *data)
   uint16_t airtime = airtime_in_ms(channel, RDCP_HEADER_SIZE + h.rdcp_payload_length);
   uint16_t airtime_with_buffer = airtime + RDCP_TIMESLOT_BUFFERTIME;
 
-  uint8_t nrt = 0;
+  uint8_t nrt = NRT_LEVEL_LOW;
   uint8_t mt = h.message_type;
   if ( (mt == RDCP_MSGTYPE_INFRASTRUCTURE_RESET) || (mt == RDCP_MSGTYPE_ACK) ||
-       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = 2;
+       (mt == RDCP_MSGTYPE_RESET_ALL_ANNOUNCEMENTS) ) nrt = NRT_LEVEL_MIDDLE;
   if ( (mt == RDCP_MSGTYPE_OFFICIAL_ANNOUNCEMENT) || (mt == RDCP_MSGTYPE_CITIZEN_REPORT) ||
-       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = 4;
+       (mt == RDCP_MSGTYPE_SIGNATURE) ) nrt = NRT_LEVEL_HIGH;
 
   duration = (nrt+1) * airtime_with_buffer;
 
@@ -317,11 +317,11 @@ int64_t rdcp_get_timeslot_duration(uint8_t channel, uint8_t *data)
 void rdcp_reset_duplicate_message_table(void)
 {
   dupe_table.num_entries = 0;
-  for (int i=0; i != 256; i++)
+  for (int i=0; i != NUM_DUPETABLE_ENTRIES; i++)
   {
-    dupe_table.tableentry[i].origin = 0;
-    dupe_table.tableentry[i].sequence_number = 0;
-    dupe_table.tableentry[i].last_seen = 0;
+    dupe_table.tableentry[i].origin = RDCP_ADDRESS_SPECIAL_ZERO;
+    dupe_table.tableentry[i].sequence_number = RDCP_SEQUENCENR_SPECIAL_ZERO;
+    dupe_table.tableentry[i].last_seen = RDCP_TIMESTAMP_ZERO;
   }
   rdcp_duplicate_table_persist();
   return;
@@ -329,11 +329,11 @@ void rdcp_reset_duplicate_message_table(void)
 
 void rdcp_dump_duplicate_message_table(void)
 {
-  char info[256];
-  for (int i=0; i != 256; i++)
+  char info[INFOLEN];
+  for (int i=0; i != NUM_DUPETABLE_ENTRIES; i++)
   {
     if (dupe_table.tableentry[i].origin == 0) continue;
-    snprintf(info, 256, "INFO: Dupe table entry %i: %04X with seqnr %04X",
+    snprintf(info, INFOLEN, "INFO: Dupe table entry %i: %04X with seqnr %04X",
       i,
       dupe_table.tableentry[i].origin,
       dupe_table.tableentry[i].sequence_number);
@@ -374,15 +374,15 @@ void rdcp_duplicate_table_persist(void)
 
 bool rdcp_check_duplicate_message(uint16_t origin, uint16_t sequence_number)
 {
-  int pos = -1;
+  int pos = RDCP_INDEX_NONE;
   for (int i=0; i != dupe_table.num_entries; i++)
   {
     if (dupe_table.tableentry[i].origin == origin) pos = i;
   }
 
-  if (pos == -1) // new entry
+  if (pos == RDCP_INDEX_NONE) // new entry
   {
-    if (dupe_table.num_entries > 254)
+    if (dupe_table.num_entries > NUM_DUPETABLE_ENTRIES-1)
     {
       Serial.println("WARNING: RDCP duplicate table overflow - increase size!");
       return false;
@@ -411,17 +411,17 @@ bool rdcp_check_duplicate_message(uint16_t origin, uint16_t sequence_number)
 
 bool rdcp_check_crc_in(uint8_t real_packet_length)
 {
-  uint8_t data_for_crc[256];
+  uint8_t data_for_crc[INFOLEN];
 
   /* Copy RDCP header and payload into data structure for CRC calculation */
-  memcpy(&data_for_crc, &rdcp_msg_in.header, RDCP_HEADER_SIZE - 2);
+  memcpy(&data_for_crc, &rdcp_msg_in.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
   for (int i=0; i < real_packet_length - RDCP_HEADER_SIZE; i++)
   {
-    data_for_crc[i + RDCP_HEADER_SIZE - 2] = rdcp_msg_in.payload.data[i];
+    data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = rdcp_msg_in.payload.data[i];
   }
 
   /* Calculate and check CRC */
-  uint16_t actual_crc = crc16(data_for_crc, real_packet_length - 2);
+  uint16_t actual_crc = crc16(data_for_crc, real_packet_length - RDCP_CRC_SIZE);
 
   if (actual_crc == rdcp_msg_in.header.checksum)
   {

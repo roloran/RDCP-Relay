@@ -5,6 +5,7 @@
 #include "Base64ren.h"
 #include "hal.h"
 #include "rdcp-send.h"
+#include "rdcp-common.h"
 
 SPIClass vspi = SPIClass(VSPI);
 SPIClass hspi = SPIClass(HSPI);
@@ -163,7 +164,7 @@ void setup_lora_hardware(void)
 
 void serial_write_incoming_message(int channel)
 {
-  char info[512];
+  char info[2*INFOLEN];
   int encodedLength;
   
   if (channel == CHANNEL433)
@@ -185,7 +186,7 @@ void serial_write_incoming_message(int channel)
     Base64ren.encode(encodedString, (char *) lorapacket_in_868.payload, lorapacket_in_868.payload_length);
   }
 
-  snprintf(info, 512, "RX %s", encodedString);
+  snprintf(info, 2*INFOLEN, "RX %s", encodedString);
   serial_writeln(info);
   return;
 }
@@ -353,7 +354,7 @@ bool setup_radio(void)
 
 void loop_radio(void)
 {
-  char info[256];
+  char info[INFOLEN];
 
   if (!hasRadio433 || !hasRadio868)
   {
@@ -376,12 +377,12 @@ void loop_radio(void)
           if (transmissionState433 == RADIOLIB_ERR_NONE)
           {
             serial_writeln("INFO: LoRa 433 transmission successfully finished!");
-            snprintf(info, 256, "INFO: TX433 wallclock time was %" PRId64 " ms", my_millis() - startOfTransmission433);
+            snprintf(info, INFOLEN, "INFO: TX433 wallclock time was %" PRId64 " ms", my_millis() - startOfTransmission433);
             serial_writeln(info);
           }
           else
           {
-            snprintf(info, 256, "ERROR: LoRa 433 transmission failed, code %d", transmissionState433);
+            snprintf(info, INFOLEN, "ERROR: LoRa 433 transmission failed, code %d", transmissionState433);
             serial_writeln(info);
           }
 
@@ -394,7 +395,7 @@ void loop_radio(void)
       }
       else
       {
-        snprintf(info, 256, "INFO: Transmitting LoRa 433 message, length %d bytes", lora_queue_out[CHANNEL433].payload_length);
+        snprintf(info, INFOLEN, "INFO: Transmitting LoRa 433 message, length %d bytes", lora_queue_out[CHANNEL433].payload_length);
         serial_writeln(info);
 
         startOfTransmission433 = my_millis();
@@ -446,7 +447,7 @@ void loop_radio(void)
               lorapacket_in_433.payload_length = numBytes;
               for (int i=0; i != numBytes; i++) lorapacket_in_433.payload[i] = byteArr[i];
 
-              snprintf(info, 256, "RXMETA %d %.2f %.2f %.3f", 
+              snprintf(info, INFOLEN, "RXMETA %d %.2f %.2f %.3f", 
                 lorapacket_in_433.payload_length, lorapacket_in_433.rssi, 
                 lorapacket_in_433.snr, CFG.lora[CHANNEL433].freq);
               serial_writeln(info);
@@ -459,7 +460,7 @@ void loop_radio(void)
           }
           else
           {
-            snprintf(info, 256, "ERROR: LoRa 433 packet receiving failed, code %d", state);
+            snprintf(info, INFOLEN, "ERROR: LoRa 433 packet receiving failed, code %d", state);
             serial_writeln(info);
           }
           start_receive_433();
@@ -480,12 +481,12 @@ void loop_radio(void)
           if (transmissionState868 == RADIOLIB_ERR_NONE)
           {
             serial_writeln("INFO: LoRa 868 transmission successfully finished!");
-            snprintf(info, 256, "INFO: TX868 wallclock time was %" PRId64 " ms", my_millis() - startOfTransmission868);
+            snprintf(info, INFOLEN, "INFO: TX868 wallclock time was %" PRId64 " ms", my_millis() - startOfTransmission868);
             serial_writeln(info);
           }
           else
           {
-            snprintf(info, 256, "ERROR: LoRa 868 transmission failed, code %d", transmissionState868);
+            snprintf(info, INFOLEN, "ERROR: LoRa 868 transmission failed, code %d", transmissionState868);
             serial_writeln(info);
           }
 
@@ -498,7 +499,7 @@ void loop_radio(void)
       }
       else
       {
-        snprintf(info, 256, "INFO: Transmitting LoRa 868 message, length %d bytes", lora_queue_out[CHANNEL868].payload_length);
+        snprintf(info, INFOLEN, "INFO: Transmitting LoRa 868 message, length %d bytes", lora_queue_out[CHANNEL868].payload_length);
         serial_writeln(info);
 
         startOfTransmission868 = my_millis();
@@ -550,7 +551,7 @@ void loop_radio(void)
               lorapacket_in_868.payload_length = numBytes;
               for (int i=0; i != numBytes; i++) lorapacket_in_868.payload[i] = byteArr[i];
 
-              snprintf(info, 256, "RXMETA %d %.2f %.2f %.3f", 
+              snprintf(info, INFOLEN, "RXMETA %d %.2f %.2f %.3f", 
                 lorapacket_in_868.payload_length, lorapacket_in_868.rssi, 
                 lorapacket_in_868.snr, CFG.lora[CHANNEL868].freq);
               serial_writeln(info);
@@ -563,7 +564,7 @@ void loop_radio(void)
           }
           else
           {
-            snprintf(info, 256, "ERROR: LoRa 868 packet receiving failed, code %d", state);
+            snprintf(info, INFOLEN, "ERROR: LoRa 868 packet receiving failed, code %d", state);
             serial_writeln(info);
           }
           start_receive_868();

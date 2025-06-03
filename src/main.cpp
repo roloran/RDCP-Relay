@@ -43,16 +43,16 @@ int64_t  minute_timer = 0;
 int      minute_counter = 0;
 String   serial_string;
 bool     shall_process_new_message = false;
-int64_t  reboot_requested = 0;
+int64_t  reboot_requested = RDCP_TIMESTAMP_ZERO;
 bool     seqnr_reset_requested = false;
-uint16_t new_delivery_receipt_from = 0x0000;
-int64_t  last_periodic_chain_finish = 0;
+uint16_t new_delivery_receipt_from = RDCP_ADDRESS_SPECIAL_ZERO;
+int64_t  last_periodic_chain_finish = RDCP_TIMESTAMP_ZERO;
 bool     has_initially_fetched = false;
 int32_t  old_free_heap = ESP.getFreeHeap();
 int32_t  old_min_free_heap = ESP.getMinFreeHeap();
 int32_t  free_heap = 0;
 int32_t  min_free_heap = 0;
-char     info[256];
+char     info[INFOLEN];
 
 extern lora_message lorapacket_in_sim, lorapacket_in_433, lorapacket_in_868, current_lora_message;
 extern callback_chain CC[NUM_TX_CALLBACKS];
@@ -93,7 +93,7 @@ void loop()
 
   rdcp_txqueue_loop(); // Periodically let the TX scheduler do its work
 
-  if ((minute_timer == 0) || (my_millis() - minute_timer > 60000))
+  if ((minute_timer == 0) || (my_millis() - minute_timer > (60*SECONDS_TO_MILLISECONDS)))
   {
     minute_timer = my_millis();
     rdcp_check_heartbeat(); // Check whether we should send a DA Heartbeat
@@ -118,7 +118,7 @@ void loop()
       min_free_heap = ESP.getMinFreeHeap();
       if ((free_heap < old_free_heap) || (min_free_heap < old_min_free_heap))
       {
-        snprintf(info, 256, "WARNING: Free heap dropped from %d/%d to %d/%d", 
+        snprintf(info, INFOLEN, "WARNING: Free heap dropped from %d/%d to %d/%d", 
           old_min_free_heap, old_free_heap, min_free_heap, free_heap);
         serial_writeln(info);
         old_min_free_heap = min_free_heap;
@@ -126,7 +126,7 @@ void loop()
         if (free_heap < 32768)
         {
           serial_writeln("ERROR: OUT OF MEMORY - restarting as countermeasure");
-          delay(1000);
+          delay(1 * MINUTES_TO_MILLISECONDS);
           ESP.restart();
         }
       }
@@ -149,7 +149,7 @@ void loop()
   if ((reboot_requested > 0) && (my_millis() > reboot_requested))
   {
     if (seqnr_reset_requested) set_next_rdcp_sequence_number(CFG.rdcp_address, 1); // Reset own sequence numbers
-    delay(1000);
+    delay(1 * SECONDS_TO_MILLISECONDS);
     ESP.restart();
   }
 

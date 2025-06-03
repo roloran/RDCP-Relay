@@ -38,8 +38,8 @@ void persist_serial_command_for_replay(String s)
   File f = LittleFS.open(FILENAME_SERIAL_REPLAY, FILE_APPEND);
 #endif
   if (!f) return;
-  char cline[256];
-  s.toCharArray(cline, 256);
+  char cline[INFOLEN];
+  s.toCharArray(cline, INFOLEN);
   f.printf("%s\n", cline);
   f.close();
   return;
@@ -77,8 +77,8 @@ uint16_t get_next_rdcp_sequence_number(uint16_t origin)
 {
   uint16_t seq = 1;
   if (!hasFFat) return seq;
-  char fn[256];
-  snprintf(fn, 256, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
+  char fn[INFOLEN];
+  snprintf(fn, INFOLEN, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
 #ifdef ROLORAN_USE_FFAT
   File f = FFat.open(fn, FILE_READ);
 #else
@@ -105,10 +105,10 @@ uint16_t get_next_rdcp_sequence_number(uint16_t origin)
 uint16_t set_next_rdcp_sequence_number(uint16_t origin, uint16_t seq)
 {
   if (!hasFFat) return seq;
-  char fn[256];
-  snprintf(fn, 256, "INFO: Persisting next-up seqnr %u for %04X", seq, origin);
+  char fn[INFOLEN];
+  snprintf(fn, INFOLEN, "INFO: Persisting next-up seqnr %u for %04X", seq, origin);
   serial_writeln(fn);
-  snprintf(fn, 256, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
+  snprintf(fn, INFOLEN, "%s%04X", FILENAME_PREFIX_SEQNR, origin);
 #ifdef ROLORAN_USE_FFAT
   FFat.remove(fn);
   File f = FFat.open(fn, FILE_WRITE);
@@ -117,8 +117,8 @@ uint16_t set_next_rdcp_sequence_number(uint16_t origin, uint16_t seq)
   File f = LittleFS.open(fn, FILE_WRITE);
 #endif
   if (!f) return seq;
-  char content[256];
-  snprintf(content, 256, "%" PRIu16 "\n", seq);
+  char content[INFOLEN];
+  snprintf(content, INFOLEN, "%" PRIu16 "\n", seq);
   f.print(content);
   f.close();
   delay(1);
@@ -129,8 +129,8 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
 {
   if (!hasFFat) return false;
   bool is_valid = false;
-  char filename[64];
-  snprintf(filename, 64, "/%s.nce", name);
+  char filename[INFOLEN];
+  snprintf(filename, INFOLEN, "/%s.nce", name);
 #ifdef ROLORAN_USE_FFAT
   File f = FFat.open(filename, FILE_READ);
 #else
@@ -155,8 +155,8 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
     }
     else 
     {
-      char info[256];
-      snprintf(info, 256, "WARNING: Old nonce == %" PRIu16 ", new nonce == %" PRIu16, old_nonce, nonce);
+      char info[INFOLEN];
+      snprintf(info, INFOLEN, "WARNING: Old nonce == %" PRIu16 ", new nonce == %" PRIu16, old_nonce, nonce);
       serial_writeln(info);
     }
   }
@@ -172,8 +172,8 @@ bool persistence_checkset_nonce(char *name, uint16_t nonce)
       is_valid = false; // cannot persist nonce, don't trust it
       serial_writeln("ERROR: Cannot persist nonce");
     }
-    char content[256];
-    snprintf(content, 256, "%" PRIu16 "\n", nonce);
+    char content[INFOLEN];
+    snprintf(content, INFOLEN, "%" PRIu16 "\n", nonce);
     f.print(content);
     f.close();
   }

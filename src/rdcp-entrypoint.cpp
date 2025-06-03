@@ -24,15 +24,15 @@ bool rdcp_check_entrypoint_designation(void)
     if (rdcp_msg_in.header.origin == rdcp_msg_in.header.sender)
     {
         if ( 
-            ((rdcp_msg_in.header.sender >= 0x0300) && 
-             (rdcp_msg_in.header.sender <= 0xFEFF))
+            ((rdcp_msg_in.header.sender >= RDCP_ADDRESS_MG_LOWERBOUND) && 
+             (rdcp_msg_in.header.sender <= RDCP_ADDRESS_MG_UPPERBOUND))
             ||
-            ((rdcp_msg_in.header.sender >= 0x0001) && 
-             (rdcp_msg_in.header.sender <= 0x00FF))
+            ((rdcp_msg_in.header.sender >= RDCP_ADDRESS_HQ_LOWERBOUND) && 
+             (rdcp_msg_in.header.sender <= RDCP_ADDRESS_HQ_UPPERBOUND))
         )
         {
-            if ((rdcp_msg_in.header.relay2 == 0xEE) && 
-                (rdcp_msg_in.header.relay3 == 0xEE))
+            if ((rdcp_msg_in.header.relay2 == RDCP_HEADER_RELAY_MAGIC_EP) && 
+                (rdcp_msg_in.header.relay3 == RDCP_HEADER_RELAY_MAGIC_EP))
             {
                 uint8_t my_designation = (CFG.relay_identifier << 4);
                 if (my_designation == rdcp_msg_in.header.relay1)
@@ -96,16 +96,16 @@ void rdcp_entrypoint_schedule(void)
     r.header.relay3 = (my_relay3 << 4) + 2; // Delay 2
 
     /* Update CRC header field */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - 2);
-    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - 2] = r.payload.data[i];
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + r.header.rdcp_payload_length);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &r.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
+    for (int i=0; i < r.header.rdcp_payload_length; i++) data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = r.payload.data[i];
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + r.header.rdcp_payload_length);
     r.header.checksum = actual_crc;
     
     /* Schedule the message for sending if the Entry Point functionality is enabled for this DA */
     if (CFG.ep_enabled)
     {
-        uint8_t data_for_scheduler[256];
+        uint8_t data_for_scheduler[INFOLEN];
         memcpy(&data_for_scheduler, &r.header, RDCP_HEADER_SIZE);
         for (int i=0; i < r.header.rdcp_payload_length; i++) 
             data_for_scheduler[i + RDCP_HEADER_SIZE] = r.payload.data[i];
@@ -127,7 +127,7 @@ void rdcp_entrypoint_schedule(void)
         }
 
         rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,
-          important, NOFORCEDTX, TX_CALLBACK_ENTRY, 0);
+          important, NOFORCEDTX, TX_CALLBACK_ENTRY, TX_WHEN_CF);
     }
 
     return;
@@ -136,10 +136,10 @@ void rdcp_entrypoint_schedule(void)
 void rdcp_send_ack_unsigned(uint16_t origin, uint16_t destination, uint16_t seqnr)
 {
     struct rdcp_message rm;
-    uint8_t data[256];
-    char info[256];
+    uint8_t data[INFOLEN];
+    char info[INFOLEN];
 
-    snprintf(info, 256, "INFO: Sending DA ACK to %04X for SeqNr %04X", destination, seqnr);
+    snprintf(info, INFOLEN, "INFO: Sending DA ACK to %04X for SeqNr %04X", destination, seqnr);
     serial_writeln(info);
   
     rm.header.origin = origin;
@@ -148,31 +148,31 @@ void rdcp_send_ack_unsigned(uint16_t origin, uint16_t destination, uint16_t seqn
     rm.header.message_type = RDCP_MSGTYPE_ACK;
     rm.header.counter = 2;
     rm.header.sequence_number = get_next_rdcp_sequence_number(origin);
-    rm.header.relay1 = 0xEE;
-    rm.header.relay2 = 0xEE;
-    rm.header.relay3 = 0xEE;
+    rm.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rm.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rm.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
   
     rm.payload.data[0] = seqnr % 256;
     rm.payload.data[1] = seqnr / 256;
     rm.payload.data[2] = rdcp_get_ack_from_infrastructure_status();
   
-    rm.header.rdcp_payload_length = 3; // 3 bytes payload, unsigned
+    rm.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_ACK_UNSIGNED;
   
     /* Finalize the RDCP Header by calculating the checksum */
-    uint8_t data_for_crc[256];
-    memcpy(&data_for_crc, &rm.header, RDCP_HEADER_SIZE - 2);
+    uint8_t data_for_crc[INFOLEN];
+    memcpy(&data_for_crc, &rm.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
     for (int i=0; i < rm.header.rdcp_payload_length; i++)
     {
-      data_for_crc[i + RDCP_HEADER_SIZE - 2] = rm.payload.data[i];
+      data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = rm.payload.data[i];
     }
-    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - 2 + rm.header.rdcp_payload_length);
+    uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rm.header.rdcp_payload_length);
     rm.header.checksum = actual_crc;
   
     /* Schedule the crafted message for sending */
     memcpy(&data, &rm.header, RDCP_HEADER_SIZE);
     for (int i=0; i<rm.header.rdcp_payload_length; i++) data[i + RDCP_HEADER_SIZE] = rm.payload.data[i];
     rdcp_txqueue_add(CHANNEL868, data, RDCP_HEADER_SIZE + rm.header.rdcp_payload_length, 
-        IMPORTANT, NOTFORCEDTX, TX_CALLBACK_ACK, 0);
+        IMPORTANT, NOTFORCEDTX, TX_CALLBACK_ACK, TX_WHEN_CF);
 
     return;
 }

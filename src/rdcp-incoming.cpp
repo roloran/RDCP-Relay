@@ -19,8 +19,8 @@ extern da_config CFG;
 extern runtime_da_data DART;
 
 int32_t bad_crc_counter;
-uint16_t last_origin = 0x0000;
-uint16_t last_seqnr = 0x0000;
+uint16_t last_origin = RDCP_ADDRESS_SPECIAL_ZERO;
+uint16_t last_seqnr = RDCP_SEQUENCENR_SPECIAL_ZERO;
 bool currently_in_fetch_mode = false;
 
 void rdcp_handle_incoming_lora_message(void)
@@ -99,13 +99,13 @@ void rdcp_handle_incoming_lora_message(void)
     /* We also register Sender-based RSSI and SNR values for any RDCP Messages. */
     bool heartbeat = false;
     bool explicit_refnr = false;
-    uint16_t latest_refnr = 0x0000;
-    uint16_t roamingrec = 0x0000;
+    uint16_t latest_refnr = RDCP_OA_REFNR_SPECIAL_ZERO;
+    uint16_t roamingrec = RDCP_ADDRESS_SPECIAL_ZERO;
     if ((current_lora_message.channel == CHANNEL868) && 
         (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT))
     { 
         heartbeat = true;
-        if (rdcp_msg_in.header.rdcp_payload_length == 4)
+        if (rdcp_msg_in.header.rdcp_payload_length == RDCP_PAYLOAD_SIZE_MG_HEARTBEAT)
         {
             explicit_refnr = true; 
             latest_refnr = rdcp_msg_in.payload.data[0] + 256 * rdcp_msg_in.payload.data[1];
@@ -155,7 +155,7 @@ void rdcp_handle_incoming_lora_message(void)
                             If the HQ used us as entry point, send the message also on the 868 MHz channel 
                             so everyone in our area gets it even if they do not hear the HQ device directly.
                         */
-                        if ((rdcp_msg_in.header.sender < 0x0100) &&
+                        if ((rdcp_msg_in.header.sender < RDCP_ADDRESS_BBKDA_LOWERBOUND) &&
                             (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
                         {
                             if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
@@ -164,7 +164,7 @@ void rdcp_handle_incoming_lora_message(void)
                             The same applies to messages sent by other MGs so they reach the HQ on 868 MHz
                             if it is in our area. 
                         */
-                        if ((rdcp_msg_in.header.sender > 0x02FF) &&
+                        if ((rdcp_msg_in.header.sender >= RDCP_ADDRESS_MG_LOWERBOUND) &&
                             (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
                         {
                             if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
@@ -192,7 +192,7 @@ void rdcp_handle_incoming_lora_message(void)
                         priority; thus, consider the channel busy longer. 
                     */
                     if ((rdcp_msg_in.header.message_type == RDCP_MSGTYPE_CITIZEN_REPORT) && 
-                        (rdcp_msg_in.header.sender >= 0x0300))
+                        (rdcp_msg_in.header.sender >= RDCP_ADDRESS_MG_LOWERBOUND))
                     {
                         rdcp_update_channel_free_estimation(CHANNEL868, rdcp_get_channel_free_estimation(CHANNEL868) + 60 * SECONDS_TO_MILLISECONDS);
                         rdcp_txqueue_reschedule(CHANNEL868, 0); // re-schedule based on CFEst
@@ -215,7 +215,7 @@ void rdcp_handle_incoming_lora_message(void)
             (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_SIGNATURE))
         {
             if ((rdcp_msg_in.header.destination == RDCP_BROADCAST_ADDRESS) || 
-                ((rdcp_msg_in.header.destination >= 0xB000) && (rdcp_msg_in.header.destination <= 0xBFFF))) 
+                ((rdcp_msg_in.header.destination >= RDCP_ADDRESS_MULTICAST_LOWERBOUND) && (rdcp_msg_in.header.destination <= RDCP_ADDRESS_MULTICAST_UPPERBOUND))) 
             {
                 rdcp_memory_remember();
             }
