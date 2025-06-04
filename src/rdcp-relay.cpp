@@ -17,7 +17,23 @@ int rdcp_check_relay_designation(void)
     uint8_t my_mask = CFG.relay_identifier << 4;
 
     /* Explicit designation */
-    if ((rdcp_msg_in.header.relay1 & 0xF0) == my_mask) result = (rdcp_msg_in.header.relay1 & 0x0F);
+    if ((rdcp_msg_in.header.relay1 & 0xF0) == my_mask)
+    { 
+        /* 
+            We are designated in the Relay1 header field.
+            However, we need to filter RDCP Messages sent to the EP on the wrong channel 
+            based on empirical evidence. 
+        */
+        if ((rdcp_msg_in.header.relay2 == RDCP_HEADER_RELAY_MAGIC_NONE) && 
+            (rdcp_msg_in.header.relay3 == RDCP_HEADER_RELAY_MAGIC_NONE)) 
+        {
+            serial_writeln("WARNING: Message sent to EntryPoint on wrong channel, not relaying.");
+        }
+        else 
+        {
+            result = (rdcp_msg_in.header.relay1 & 0x0F);
+        }
+    }
     if ((rdcp_msg_in.header.relay2 & 0xF0) == my_mask) result = (rdcp_msg_in.header.relay2 & 0x0F);
     if ((rdcp_msg_in.header.relay3 & 0xF0) == my_mask) result = (rdcp_msg_in.header.relay3 & 0x0F);
 
