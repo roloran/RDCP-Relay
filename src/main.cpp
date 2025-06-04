@@ -99,8 +99,8 @@ void loop()
     rdcp_check_heartbeat(); // Check whether we should send a DA Heartbeat
     rdcp_periodic_kickstart(); // Check whether we should start a periodic868 chain
     minute_counter++;
-    if (minute_counter == 1)
-    { /* Warning: Executed after 1, 31, ... minutes, not only once, as minute_counter is reset every 30 minutes. */
+    if (minute_counter == 2)
+    { /* Warning: Executed after 2, 32, ... minutes, not only once, as minute_counter is reset every 30 minutes. */
       if (!has_initially_fetched)
       {
         has_initially_fetched = true;
