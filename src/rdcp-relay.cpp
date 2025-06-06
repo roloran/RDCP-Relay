@@ -61,7 +61,7 @@ bool rdcp_check_has_already_relayed(void)
 
     if ((relay_memory[index].origin == rdcp_msg_in.header.origin) &&
         (relay_memory[index].sender == rdcp_msg_in.header.sender) &&
-        (relay_memory[index].crc    == rdcp_msg_in.header.checksum) &&
+        (relay_memory[index].relay1 == rdcp_msg_in.header.relay1) &&
         (relay_memory[index].seqnr  == rdcp_msg_in.header.sequence_number)) 
     {
         // Duplicate, do not relay again
@@ -73,7 +73,7 @@ bool rdcp_check_has_already_relayed(void)
         relay_memory[index].sender = rdcp_msg_in.header.sender; // by checking the sender, we relay the same message multiple times if designated as relay by different senders
         relay_memory[index].origin = rdcp_msg_in.header.origin;
         relay_memory[index].seqnr  = rdcp_msg_in.header.sequence_number;
-        relay_memory[index].crc    = rdcp_msg_in.header.checksum;
+        relay_memory[index].relay1 = rdcp_msg_in.header.relay1;
         // Signal back that it was a new message 
         return false;
     }
