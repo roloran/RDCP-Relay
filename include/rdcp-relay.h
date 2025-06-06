@@ -26,6 +26,7 @@ struct relay_memory_entry {
     uint16_t sender = RDCP_ADDRESS_SPECIAL_ZERO;
     uint16_t origin = RDCP_ADDRESS_SPECIAL_ZERO;
     uint16_t seqnr  = RDCP_SEQUENCENR_SPECIAL_ZERO;
+    uint16_t crc    = 0x0000;
 };
 
 #endif 
