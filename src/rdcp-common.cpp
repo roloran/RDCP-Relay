@@ -228,7 +228,7 @@ void rdcp_update_cfest_out(uint8_t channel, uint8_t len, uint8_t rcnt, uint8_t m
   contributed_propagation_cycle_end = channel_free_at;
 
   rdcp_update_channel_free_estimation(channel, channel_free_at);
-  rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_CONTRIBUTOR);
+  if (channel == CHANNEL433) rdcp_track_propagation_cycles(channel_free_at, origin, seqnr, PC_STATUS_CONTRIBUTOR);
 
   char buf[INFOLEN];
   snprintf(buf, INFOLEN, "INFO: Channel %d CFEst4current (out): +%zu ms, @%llu ms (airtime %u ms, retrans %zu ms, timeslot %zu ms, %d fut ts)", 
