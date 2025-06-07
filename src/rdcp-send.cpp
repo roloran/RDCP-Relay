@@ -232,7 +232,7 @@ bool rdcp_callback_cad(uint8_t channel, bool cad_busy)
         start_receive_433();
         txq[channel].entries[tx_ongoing[channel]].in_process = false;
         tx_ongoing[channel] = -1;
-        int64_t random_delay = random(8000, 10000);
+        int64_t random_delay = random(16000, 20000);
         snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, random_delay, retry);
         serial_writeln(buf);
         rdcp_txqueue_reschedule(channel, -random_delay);
