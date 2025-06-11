@@ -111,7 +111,7 @@ void rdcp_forward_schedule(bool add_random_delay)
         int64_t forced_time = TX_WHEN_CF;
         if (add_random_delay)
         { 
-            forced_time = 0 - random(10000,20000);
+            forced_time = 0 - random(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
         }
 
         rdcp_txqueue_add(CHANNEL868, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,

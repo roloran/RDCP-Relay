@@ -80,6 +80,8 @@ struct da_config {
     int64_t  periodic_interval      = 30 * MINUTES_TO_MILLISECONDS;    /// How often to send Periodic868 memories
     bool     bt_enabled         = false;                /// BT access
     int64_t  beacon_interval[NUMCHANNELS] = {0, 0};     /// Beacon mode intervals
+    uint16_t corridor_basetime  = 10;                   /// seconds to keep channel free for ACKs when hearing CIREs, own basetime, 1-2x for other DAs
+    uint8_t  sf_multiplier      = 1;                    /// factor for random delays, 1 for SF7
 };
 
 #define MAX_LORA_PAYLOAD_SIZE 250

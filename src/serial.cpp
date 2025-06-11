@@ -622,6 +622,36 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     serial_writeln("INFO: Changed Periodic868 interval to " + p1 + " minutes");
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
+  else if (s_uppercase.startsWith("CORRIDOR "))
+  {
+    String p1 = s.substring(9);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 10);
+    CFG.corridor_basetime = new_value;
+    serial_writeln("INFO: Changed corridor basetime to " + p1 + " seconds");
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("RDCPSFMUL "))
+  {
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 10);
+    CFG.sf_multiplier = new_value;
+    serial_writeln("INFO: Changed RDCP SF multiplier to " + p1);
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("RDCPSEQNR "))
+  {
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 16);
+    set_next_rdcp_sequence_number(CFG.rdcp_address, new_value);
+    serial_writeln("INFO: Changed RDCP Sequence Number to " + p1);
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
   else if (s_uppercase.startsWith("BEACON433 "))
   {
     String p1 = s.substring(10);

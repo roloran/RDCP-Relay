@@ -143,7 +143,7 @@ void rdcp_handle_incoming_lora_message(void)
                     if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_CITIZEN_REPORT)
                     {
                         // Re-schedule other entries on 868 MHz so we get the ACK out first 
-                        rdcp_txqueue_reschedule(CHANNEL868, 30 * SECONDS_TO_MILLISECONDS);
+                        rdcp_txqueue_reschedule(CHANNEL868, CFG.corridor_basetime * SECONDS_TO_MILLISECONDS);
                         rdcp_send_ack_unsigned(CFG.rdcp_address, rdcp_msg_in.header.origin, 
                                                rdcp_msg_in.header.sequence_number);
                     }
@@ -196,8 +196,8 @@ void rdcp_handle_incoming_lora_message(void)
                     */
                     if ((rdcp_msg_in.header.message_type == RDCP_MSGTYPE_CITIZEN_REPORT) && 
                         (rdcp_msg_in.header.sender >= RDCP_ADDRESS_MG_LOWERBOUND))
-                    {
-                        rdcp_update_channel_free_estimation(CHANNEL868, rdcp_get_channel_free_estimation(CHANNEL868) + 60 * SECONDS_TO_MILLISECONDS);
+                    { // was 2* corridor_basetime
+                        rdcp_update_channel_free_estimation(CHANNEL868, rdcp_get_channel_free_estimation(CHANNEL868) + CFG.corridor_basetime * SECONDS_TO_MILLISECONDS);
                         rdcp_txqueue_reschedule(CHANNEL868, 0); // re-schedule based on CFEst
                     }
                     rdcp_forward_schedule(true); // add a delay

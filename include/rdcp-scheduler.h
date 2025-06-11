@@ -23,7 +23,7 @@ struct txqueue_entry {
 };
   
 /// Keep the TX Queue small on purpose. We don't want single devices to block the channel for too long.
-#define MAX_TXQUEUE_ENTRIES 8
+#define MAX_TXQUEUE_ENTRIES 64
   
 /**
   * Data structure for the overall TX Queue.
