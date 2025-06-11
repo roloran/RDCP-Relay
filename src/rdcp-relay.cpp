@@ -24,8 +24,9 @@ int rdcp_check_relay_designation(void)
             However, we need to filter RDCP Messages sent to the EP on the wrong channel 
             based on empirical evidence. 
         */
-        if ((rdcp_msg_in.header.relay2 == RDCP_HEADER_RELAY_MAGIC_NONE) && 
-            (rdcp_msg_in.header.relay3 == RDCP_HEADER_RELAY_MAGIC_NONE)) 
+        if ((rdcp_msg_in.header.relay2 == RDCP_HEADER_RELAY_MAGIC_NONE) && // no relay2
+            (rdcp_msg_in.header.relay3 == RDCP_HEADER_RELAY_MAGIC_NONE) && // no relay3
+            ((rdcp_msg_in.header.relay1 & 0x0F) == 0)) // delay for relay1 is 0 
         {
             serial_writeln("WARNING: Message sent to EntryPoint on wrong channel, not relaying.");
         }
