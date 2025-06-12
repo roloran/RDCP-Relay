@@ -193,6 +193,8 @@ void rdcp_chain_callback(uint8_t callback_type, bool has_timeout)
     snprintf(info, INFOLEN, "INFO: Callback %d triggered (%s)", callback_type, has_timeout ? "timeout" : "regular");
     serial_writeln(info);
 
+    cpu_fast();
+
     if (callback_type == TX_CALLBACK_FETCH_SINGLE)
     {
         if (has_timeout)

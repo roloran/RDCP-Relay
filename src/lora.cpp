@@ -367,6 +367,7 @@ void loop_radio(void)
   {
     if (hasMsgToSend433)
     {
+      cpu_fast();
       if (msgOnTheWay433)
       {
         if (transmissionFlag433)
@@ -410,6 +411,7 @@ void loop_radio(void)
 
       if (transmissionFlag433)
       {
+        cpu_fast();
         enableInterrupt433 = false;
         transmissionFlag433 = false;
 
@@ -471,6 +473,7 @@ void loop_radio(void)
 
     if (hasMsgToSend868)
     {
+      cpu_fast();
       if (msgOnTheWay868)
       {
         if (transmissionFlag868)
@@ -514,6 +517,7 @@ void loop_radio(void)
 
       if (transmissionFlag868)
       {
+        cpu_fast();
         enableInterrupt868 = false;
         transmissionFlag868 = false;
 

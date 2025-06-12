@@ -25,6 +25,8 @@ bool currently_in_fetch_mode = false;
 
 void rdcp_handle_incoming_lora_message(void)
 {
+    cpu_fast(); 
+    
     /* Check whether it could be an RDCP message at all */
     if (current_lora_message.payload_length < RDCP_HEADER_SIZE)
     {

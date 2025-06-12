@@ -282,6 +282,7 @@ bool rdcp_txqueue_loop(void)
             {
                 if (txq[channel].entries[i].currently_scheduled_time <= now)
                 {
+                    cpu_fast();
                     if (tx_ongoing[channel] == -1)
                     { // found a first message to start send-processing now
                         tx_ongoing[channel] = i;
