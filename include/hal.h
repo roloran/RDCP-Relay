@@ -15,5 +15,15 @@
  */
 int64_t my_millis(void);
 
+/**
+ * Set maximum CPU frequency. 
+ */
+void cpu_fast(void);
+
+/**
+ * Set power-conserving CPU frequency.
+ */
+void cpu_slow(void);
+
 #endif 
 /* EOF */

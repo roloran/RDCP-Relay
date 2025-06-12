@@ -60,10 +60,12 @@ bool rdcp_check_has_already_relayed(void)
     /* This might be extended to a larger ring-buffer memory depending on how RDCP collissions are handled. */
     int index = 0; /* may be changed to loop later */
 
-    if ((relay_memory[index].origin == rdcp_msg_in.header.origin) &&
-        (relay_memory[index].sender == rdcp_msg_in.header.sender) &&
-        (relay_memory[index].relay1 == rdcp_msg_in.header.relay1) &&
-        (relay_memory[index].seqnr  == rdcp_msg_in.header.sequence_number)) 
+    uint16_t relay12 = (rdcp_msg_in.header.relay1 << 8) + rdcp_msg_in.header.relay2; // combined relay1 and relay2 header fields
+
+    if ((relay_memory[index].origin  == rdcp_msg_in.header.origin) &&
+        (relay_memory[index].sender  == rdcp_msg_in.header.sender) &&
+        (relay_memory[index].relay12 == relay12) &&
+        (relay_memory[index].seqnr   == rdcp_msg_in.header.sequence_number)) 
     {
         // Duplicate, do not relay again
         return true;
@@ -71,10 +73,10 @@ bool rdcp_check_has_already_relayed(void)
     else 
     {
         // Remember this message for future checks 
-        relay_memory[index].sender = rdcp_msg_in.header.sender; // by checking the sender, we relay the same message multiple times if designated as relay by different senders
-        relay_memory[index].origin = rdcp_msg_in.header.origin;
-        relay_memory[index].seqnr  = rdcp_msg_in.header.sequence_number;
-        relay_memory[index].relay1 = rdcp_msg_in.header.relay1;
+        relay_memory[index].sender  = rdcp_msg_in.header.sender; // by checking the sender, we relay the same message multiple times if designated as relay by different senders
+        relay_memory[index].origin  = rdcp_msg_in.header.origin;
+        relay_memory[index].seqnr   = rdcp_msg_in.header.sequence_number;
+        relay_memory[index].relay12 = relay12;
         // Signal back that it was a new message 
         return false;
     }

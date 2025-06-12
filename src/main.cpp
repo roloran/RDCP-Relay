@@ -95,6 +95,7 @@ void loop()
 
   if ((minute_timer == 0) || (my_millis() - minute_timer > (60*SECONDS_TO_MILLISECONDS)))
   {
+    cpu_fast();
     minute_timer = my_millis();
     rdcp_check_heartbeat(); // Check whether we should send a DA Heartbeat
     rdcp_periodic_kickstart(); // Check whether we should start a periodic868 chain
@@ -155,6 +156,8 @@ void loop()
 
   delay(1); // for background tasks such as watchdogs
   if (rtc_active) rdcp_cmd_check_rtc();
+
+  cpu_slow();
   return;
 }
 
