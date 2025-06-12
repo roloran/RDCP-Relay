@@ -617,6 +617,8 @@ void rdcp_cmd_fetch_one(void)
 
 void rdcp_check_heartbeat(void)
 {
+    if (CFG.heartbeat_interval == 0) return; // Heartbeat-sending disabled
+
     int64_t now = my_millis();
     if (last_heartbeat_sent + CFG.heartbeat_interval < now)
     {
