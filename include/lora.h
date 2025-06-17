@@ -55,8 +55,8 @@ struct da_config {
     lora_channel_config lora[2];                        /// Settings for both LoRa channels
     uint16_t rdcp_address       = 0x02FF;               /// Own RDCP Address
     uint8_t  relay_identifier   = 0x0C;                 /// Own assigned RDCP Relay Identifier
-    uint16_t oarelays[3]        = {0, 0, 0};            /// Three other relay identifiers for OA relaying
-    uint16_t cirerelays[3]      = {0, 0, 0};            /// Three other relay identifiers for CIRE relaying
+    uint16_t oarelays[3]        = {0x0D, 0x0D, 0x0D};   /// Three other relay identifiers for OA relaying
+    uint16_t cirerelays[3]      = {0x0D, 0x0D, 0x0D};   /// Three other relay identifiers for CIRE relaying
     bool     ts4allones         = false;                /// Let everyone relay in the final timeslot
     uint8_t  ts7relay1          = 0xE0;                 /// Value to set as Relay1 when relaying in Timeslot 7
     uint16_t multicast[5]       = {0, 0, 0, 0, 0};      /// Own RDCP Multicast Addresses/groups
