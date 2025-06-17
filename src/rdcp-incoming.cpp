@@ -19,8 +19,8 @@ extern da_config CFG;
 extern runtime_da_data DART;
 
 int32_t bad_crc_counter;
-uint16_t last_origin = RDCP_ADDRESS_SPECIAL_ZERO;
-uint16_t last_seqnr = RDCP_SEQUENCENR_SPECIAL_ZERO;
+uint16_t last_origin[NUMCHANNELS] = { RDCP_ADDRESS_SPECIAL_ZERO, RDCP_ADDRESS_SPECIAL_ZERO };
+uint16_t last_seqnr[NUMCHANNELS]  = { RDCP_SEQUENCENR_SPECIAL_ZERO, RDCP_SEQUENCENR_SPECIAL_ZERO };
 bool currently_in_fetch_mode = false;
 
 void rdcp_handle_incoming_lora_message(void)
@@ -63,10 +63,10 @@ void rdcp_handle_incoming_lora_message(void)
     rdcp_update_cfest_in(rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number);
 
     /* Stop any TX events on the current channel as long as it is busy */
-    if ((rdcp_msg_in.header.origin != last_origin) && (rdcp_msg_in.header.sequence_number != last_seqnr))
+    if ((rdcp_msg_in.header.origin != last_origin[current_lora_message.channel]) && (rdcp_msg_in.header.sequence_number != last_seqnr[current_lora_message.channel]))
     {
-        last_origin = rdcp_msg_in.header.origin;
-        last_seqnr = rdcp_msg_in.header.sequence_number;
+        last_origin[current_lora_message.channel] = rdcp_msg_in.header.origin;
+        last_seqnr[current_lora_message.channel] = rdcp_msg_in.header.sequence_number;
         rdcp_reschedule_on_busy_channel(current_lora_message.channel);
     }
 
