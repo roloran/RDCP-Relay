@@ -1,5 +1,8 @@
 #include "hal.h"
 #include "serial.h"
+#include "lora.h"
+
+extern da_config CFG;
 
 int64_t my_millis(void)
 {
@@ -14,7 +17,7 @@ void cpu_fast(void)
 
 void cpu_slow(void)
 {
-    setCpuFrequencyMhz(80);
+    if (!CFG.bt_enabled) setCpuFrequencyMhz(80);
     return;
 }
 
