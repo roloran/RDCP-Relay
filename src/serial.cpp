@@ -9,14 +9,14 @@
 #include "rdcp-commands.h"
 #include "rdcp-scheduler.h"
 #include "BluetoothSerial.h"
-#include <Preferences.h>
+// #include <Preferences.h>
 
 lora_message lorapacket_in_sim;
 extern da_config CFG;
 extern runtime_da_data DART;
 BluetoothSerial SerialBT;
 bool bt_on = false;
-Preferences preferences;
+// Preferences preferences;
 
 void setup_serial(void)
 {
@@ -28,11 +28,12 @@ void setup_serial(void)
 void enable_bt(void)
 {
   char devicename[NONCENAMESIZE];
-  preferences.begin("RDCP-RL", false);
-  unsigned int btuid = preferences.getUInt("btuid", 1);
-  preferences.putUInt("btuid", btuid+1);
-  preferences.end();
-  snprintf(devicename, NONCENAMESIZE, "RDCP-RL-%04X-%u", CFG.rdcp_address, btuid);
+  // preferences.begin("RDCP-RL", false);
+  // unsigned int btuid = preferences.getUInt("btuid", 1);
+  // preferences.putUInt("btuid", btuid+1);
+  // preferences.end();
+  // snprintf(devicename, NONCENAMESIZE, "RDCP-RL-%04X-%u", CFG.rdcp_address, btuid);
+  snprintf(devicename, NONCENAMESIZE, "RDCP-RL-%04X", CFG.rdcp_address);
   SerialBT.begin(devicename);
   SerialBT.setTimeout(10);
   CFG.bt_enabled = true;
@@ -63,6 +64,7 @@ void serial_write(String s, bool use_prefix)
     if (CFG.bt_enabled) SerialBT.print(s);
   }
   Serial.flush();
+  if (CFG.bt_enabled) SerialBT.flush();
   return;
 }
 
