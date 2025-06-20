@@ -4,7 +4,7 @@
 #include "lora.h"
 #include "hal.h"
 
-int64_t last_csv_timestamp = RDCP_TIMESTAMP_ZERO;
+int64_t last_csv_timestamp[NUMCHANNELS] = { RDCP_TIMESTAMP_ZERO, RDCP_TIMESTAMP_ZERO };
 
 extern lora_message current_lora_message;
 extern rdcp_message rdcp_msg_in;
@@ -30,7 +30,7 @@ void print_rdcp_csv(void)
 
   snprintf(info, 2*INFOLEN, "RDCPCSV: %04X-%s,%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%d,%04X,%d,%04X,%04X,%04X,%04X,%02X,%d,%02X,%02X,%02X,%04X,%d,%3.3f", 
     CFG.rdcp_address, current_lora_message.channel == CHANNEL433 ? "433" : "868",
-    now - last_csv_timestamp,
+    now - last_csv_timestamp[current_lora_message.channel],
     now, 
     CFEst[current_lora_message.channel],
     CFEst[current_lora_message.channel] - now,
@@ -51,7 +51,7 @@ void print_rdcp_csv(void)
     CFG.lora[current_lora_message.channel].freq
   );
   serial_writeln(info);
-  last_csv_timestamp = now;
+  last_csv_timestamp[current_lora_message.channel] = now;
   return;
 }
 
