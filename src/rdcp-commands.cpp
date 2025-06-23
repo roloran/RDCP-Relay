@@ -622,6 +622,14 @@ void rdcp_check_heartbeat(void)
     int64_t now = my_millis();
     if (last_heartbeat_sent + CFG.heartbeat_interval < now)
     {
+        /* Don't even schedule a heartbeat when 433 MHz is currently very busy. */
+        if (get_num_txq_entries(CHANNEL433) > 1)
+        {
+            serial_writeln("WARNING: Postponing heartbeat due to busy 433 MHz channel");
+            last_heartbeat_sent += 5 * MINUTES_TO_MILLISECONDS;
+            return;
+        }
+
         last_heartbeat_sent = now;
         serial_writeln("INFO: Preparing to send DA Heartbeat to HQ");
 
