@@ -297,6 +297,19 @@ bool rdcp_txqueue_loop(void)
             }
         }
         if (tx_ongoing[channel] != -1) { result = true; } else { continue; }
+
+        /* Double-check for non-force-tx scheduling clashes */
+        if (!txq[channel].entries[tx_ongoing[channel]].force_tx)
+        { // Entry is not force-tx...
+          if (now < rdcp_get_channel_free_estimation(channel))
+          { // ... but channel is currently known not to be free ... 
+            serial_writeln("WARNING: Resolving scheduling clash");
+            tx_ongoing[channel] = -1;
+            result = false;
+            rdcp_txqueue_reschedule(channel, 0); // re-schedule based on channel's CFest 
+            return false;
+          }
+        }
   
         txq[channel].entries[tx_ongoing[channel]].in_process = true;
         tx_process_start[channel] = now;
