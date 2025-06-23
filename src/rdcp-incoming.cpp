@@ -22,6 +22,7 @@ int32_t bad_crc_counter;
 uint16_t last_origin[NUMCHANNELS] = { RDCP_ADDRESS_SPECIAL_ZERO, RDCP_ADDRESS_SPECIAL_ZERO };
 uint16_t last_seqnr[NUMCHANNELS]  = { RDCP_SEQUENCENR_SPECIAL_ZERO, RDCP_SEQUENCENR_SPECIAL_ZERO };
 bool currently_in_fetch_mode = false;
+char serial_info[INFOLEN];
 
 void rdcp_handle_incoming_lora_message(void)
 {
@@ -248,7 +249,8 @@ void rdcp_handle_incoming_lora_message(void)
         }
         else 
         {
-            serial_writeln("INFO: Ignoring duplicate");
+            snprintf(serial_info, INFOLEN, "INFO: Ignoring duplicate %04X-%04X", rdcp_msg_in.header.origin, rdcp_msg_in.header.sender);
+            serial_writeln(serial_info);
         }
     }
 
