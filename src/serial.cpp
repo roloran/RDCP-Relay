@@ -600,6 +600,24 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     serial_writeln("INFO: Changed Periodic868 interval to " + p1 + " minutes");
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
+  else if (s_uppercase.startsWith("BEACON433 "))
+  {
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 10);
+    CFG.beacon_interval[CHANNEL433] = new_value * SECONDS_TO_MILLISECONDS;
+    serial_writeln("INFO: Changed Beacon433 interval to " + p1 + " seconds");
+  }
+  else if (s_uppercase.startsWith("BEACON868 "))
+  {
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 10);
+    CFG.beacon_interval[CHANNEL868] = new_value * SECONDS_TO_MILLISECONDS;
+    serial_writeln("INFO: Changed Beacon868 interval to " + p1 + " seconds");
+  }
   else if (s_uppercase.startsWith("SIMRX "))
   { // SIMRX 433 base64here
     // 01234567890

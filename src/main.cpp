@@ -12,6 +12,7 @@
 #include "rdcp-memory.h"
 #include "rdcp-callbacks.h"
 #include "rdcp-commands.h"
+#include "rdcp-beacon.h"
 
 SET_LOOP_TASK_STACK_SIZE(16*1024); // default of 8 kb is not enough
 
@@ -156,6 +157,7 @@ void loop()
 
   delay(1); // for background tasks such as watchdogs
   if (rtc_active) rdcp_cmd_check_rtc();
+  rdcp_beacon();
 
   cpu_slow();
   return;

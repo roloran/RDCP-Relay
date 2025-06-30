@@ -79,6 +79,7 @@ struct da_config {
     int64_t  max_periodic868_age    = 24 * HOURS_TO_MILLISECONDS;      /// Maximum age of periodically retransmitted old memories
     int64_t  periodic_interval      = 30 * MINUTES_TO_MILLISECONDS;    /// How often to send Periodic868 memories
     bool     bt_enabled         = false;                /// BT access
+    int64_t  beacon_interval[NUMCHANNELS] = {0, 0};     /// Beacon mode intervals
 };
 
 #define MAX_LORA_PAYLOAD_SIZE 250
