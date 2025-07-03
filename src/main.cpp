@@ -54,6 +54,7 @@ int32_t  old_min_free_heap = ESP.getMinFreeHeap();
 int32_t  free_heap = 0;
 int32_t  min_free_heap = 0;
 char     info[INFOLEN];
+bool     rinse_and_repeat = false;
 
 extern lora_message lorapacket_in_sim, lorapacket_in_433, lorapacket_in_868, current_lora_message;
 extern callback_chain CC[NUM_TX_CALLBACKS];
@@ -76,6 +77,7 @@ void loop()
     memcpy(&current_lora_message, &lorapacket_in_433, sizeof(lora_message));
     lorapacket_in_433.available = false;
     rdcp_handle_incoming_lora_message();
+    rinse_and_repeat = true;
   }
 
   if (lorapacket_in_868.available)
@@ -83,6 +85,7 @@ void loop()
     memcpy(&current_lora_message, &lorapacket_in_868, sizeof(lora_message));
     lorapacket_in_868.available = false;
     rdcp_handle_incoming_lora_message();
+    rinse_and_repeat = true;
   }
 
   if (lorapacket_in_sim.available)
@@ -90,6 +93,14 @@ void loop()
     memcpy(&current_lora_message, &lorapacket_in_sim, sizeof(lora_message));
     lorapacket_in_sim.available = false;
     rdcp_handle_incoming_lora_message();
+    rinse_and_repeat = true;
+  }
+
+  if (rinse_and_repeat) 
+  { 
+    delay(1); 
+    rinse_and_repeat = false;
+    return; 
   }
 
   rdcp_txqueue_loop(); // Periodically let the TX scheduler do its work
@@ -128,7 +139,7 @@ void loop()
         if (free_heap < 32768)
         {
           serial_writeln("ERROR: OUT OF MEMORY - restarting as countermeasure");
-          delay(1 * MINUTES_TO_MILLISECONDS);
+          delay(5 * SECONDS_TO_MILLISECONDS);
           ESP.restart();
         }
       }

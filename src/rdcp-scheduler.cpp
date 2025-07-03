@@ -51,6 +51,7 @@ bool rdcp_txqueue_add(uint8_t channel, uint8_t *data, uint8_t len, bool importan
         else if (forced_time < 0)
         { /* Negative relative time => append */
           int64_t highest_timestamp = rdcp_get_channel_free_estimation(channel);
+          if (now > highest_timestamp) highest_timestamp = now; // don't schedule into the past
           for (int j=0; j < MAX_TXQUEUE_ENTRIES; j++)
           {
             if (txq[channel].entries[j].waiting)

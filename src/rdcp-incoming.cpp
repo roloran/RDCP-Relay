@@ -249,7 +249,7 @@ void rdcp_handle_incoming_lora_message(void)
         }
         else 
         {
-            snprintf(serial_info, INFOLEN, "INFO: Ignoring duplicate %04X-%04X", rdcp_msg_in.header.origin, rdcp_msg_in.header.sender);
+            snprintf(serial_info, INFOLEN, "INFO: Ignoring duplicate %04X-%04X sent by %04X", rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number, rdcp_msg_in.header.sender);
             serial_writeln(serial_info);
         }
     }

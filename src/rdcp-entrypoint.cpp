@@ -37,7 +37,10 @@ bool rdcp_check_entrypoint_designation(void)
                 uint8_t my_designation = (CFG.relay_identifier << 4);
                 if (my_designation == rdcp_msg_in.header.relay1)
                 {
-                    serial_writeln("INFO: Positive entry point designation check");
+                    char output[INFOLEN];
+                    snprintf(output, INFOLEN, "INFO: Positive entry point designation check for %04X-%04X", 
+                        rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number);
+                    serial_writeln(output);
                     return true;
                 }
             }
@@ -126,8 +129,10 @@ void rdcp_entrypoint_schedule(void)
             important = true;
         }
 
+        int64_t schedtime = 0 - 10 * SECONDS_TO_MILLISECONDS; // history: TX_WHEN_CF
+
         rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,
-          important, NOFORCEDTX, TX_CALLBACK_ENTRY, TX_WHEN_CF);
+          important, NOFORCEDTX, TX_CALLBACK_ENTRY, schedtime);
     }
 
     return;

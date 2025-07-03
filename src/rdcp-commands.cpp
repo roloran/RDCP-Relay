@@ -75,8 +75,10 @@ void rdcp_pass_response_to_scheduler(uint8_t channel)
         Add a short random delay when responding. Otherwise, we might 
         be so fast that the recipient has not switched back to receiving 
         yet after sending its request. 
+        We also need to delay in case we received a command via 868 MHz 
+        and do not know the 433 MHz propagation cycle yet.
     */
-    int64_t random_delay = 0 - random(2000,5000);
+    int64_t random_delay = 0 - random(9000, 10000); // history: 2-5 s
 
     rdcp_txqueue_add(channel, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
       NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
