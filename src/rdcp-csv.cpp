@@ -3,6 +3,8 @@
 #include "rdcp-common.h"
 #include "lora.h"
 #include "hal.h"
+#include "FS.h"
+#include <LittleFS.h>
 
 int64_t last_csv_timestamp[NUMCHANNELS] = { RDCP_TIMESTAMP_ZERO, RDCP_TIMESTAMP_ZERO };
 
@@ -12,6 +14,70 @@ extern da_config CFG;
 extern int64_t CFEst[NUMCHANNELS]; 
 extern uint16_t most_recent_airtime;
 extern uint8_t  most_recent_future_timeslots;
+
+bool     rdcpcsv_logfile_enabled = false;
+uint16_t rdcpcsv_logfile_count   = 0;
+#define  FILENAME_RDCPCSV_LOGFILE "/rdcpcsv.log"
+#define  RDCPCSV_LOGFILE_MAX_ENTRIES 5000
+
+void rdcpcsv_logfile_set_status(bool enabled)
+{
+  rdcpcsv_logfile_enabled = enabled;
+  if (enabled) 
+    serial_writeln("INFO: RDCPCSV Logfile enabled");
+  else 
+    serial_writeln("INFO: RDCPCSV Logfile disabled");
+  return;
+}
+
+void rdcpcsv_logfile_append(String info)
+{
+  if (!rdcpcsv_logfile_enabled) return;
+  if (rdcpcsv_logfile_count > RDCPCSV_LOGFILE_MAX_ENTRIES)
+  {
+    serial_writeln("ERROR: RDCPCSV logfile maximum size exceeded");
+    return;
+  }
+  rdcpcsv_logfile_count++;
+  File f = LittleFS.open(FILENAME_RDCPCSV_LOGFILE, FILE_APPEND);
+  if (!f) return;
+
+  char c_info[INFOLEN];
+  info.toCharArray(c_info, INFOLEN);
+
+  f.printf("%s\n", c_info);
+  f.close();
+  return;
+}
+
+void rdcpcsv_logfile_delete(void)
+{
+  LittleFS.remove(FILENAME_RDCPCSV_LOGFILE);
+  rdcpcsv_logfile_count = 0;
+  serial_writeln("INFO: RDCPCSV logfile deleted");
+  return;
+}
+
+void rdcpcsv_logfile_dump(void)
+{
+  File f = LittleFS.open(FILENAME_RDCPCSV_LOGFILE, FILE_READ);
+  if (!f)
+  {
+    serial_writeln("INFO: No RDCPCSV logfile available");
+    return;
+  }
+  serial_writeln("INFO: BEGIN OF RDCPCSV LOGFILE");
+
+  while (f.available())
+  {
+    String line = f.readStringUntil('\n');
+    serial_writeln(line);
+  }
+
+  f.close();
+  serial_writeln("INFO: END OF RDCPCSV LOGFILE");
+  return;
+}
 
 void print_rdcp_csv(void)
 {
@@ -50,7 +116,10 @@ void print_rdcp_csv(void)
     most_recent_airtime,
     CFG.lora[current_lora_message.channel].freq
   );
+
   serial_writeln(info);
+  rdcpcsv_logfile_append(info);
+
   last_csv_timestamp[current_lora_message.channel] = now;
   return;
 }

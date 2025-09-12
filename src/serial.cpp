@@ -9,6 +9,7 @@
 #include "rdcp-commands.h"
 #include "rdcp-scheduler.h"
 #include "BluetoothSerial.h"
+#include "rdcp-csv.h"
 // #include <Preferences.h>
 
 lora_message lorapacket_in_sim;
@@ -559,6 +560,22 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
       CFG.bt_enabled = false;
     }
     if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("CSVLOGENABLE"))
+  {
+    rdcpcsv_logfile_set_status(true);
+  }
+  else if (s_uppercase.startsWith("CSVLOGDISABLE"))
+  {
+    rdcpcsv_logfile_set_status(false);
+  }
+  else if (s_uppercase.startsWith("CSVLOGDELETE"))
+  {
+    rdcpcsv_logfile_delete();
+  }
+  else if (s_uppercase.startsWith("CSVLOGDUMP"))
+  {
+    rdcpcsv_logfile_dump();
   }
   else if (s_uppercase.startsWith("HEARTBEAT "))
   {
