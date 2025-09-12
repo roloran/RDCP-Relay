@@ -850,8 +850,27 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];
 
     /* Send on both channels in case we have an HQ in our 868 MHz range */
+    /* First, 433 MHz channel. */
     rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
       IMPORTANT, NOFORCEDTX, TX_CALLBACK_CIRE, random_delay);
+
+    /* Second, 868 MHz channel. Header fields need to be adjusted. */
+    rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
+    rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
+
+    /* Update CRC header field */
+    memcpy(&data_for_crc, &rdcp_response.header, RDCP_HEADER_SIZE - RDCP_CRC_SIZE);
+    for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
+        data_for_crc[i + RDCP_HEADER_SIZE - RDCP_CRC_SIZE] = rdcp_response.payload.data[i];
+    actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
+    rdcp_response.header.checksum = actual_crc;
+
+    random_delay = 0 - random(1000,2000);
+    memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
+    for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
+        data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];
+
     rdcp_txqueue_add(CHANNEL868, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
       IMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
 

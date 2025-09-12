@@ -60,6 +60,13 @@ bool rdcp_check_forward_da_relevance(void)
 
 void rdcp_forward_schedule(bool add_random_delay)
 {
+    /* Do not forward messages we have sent ourselves before */
+    if (rdcp_msg_in.header.origin == CFG.rdcp_address)
+    {
+        serial_writeln("INFO: Not forwarding my own message on 868 MHz after receiving it from someone else");
+        return;
+    }
+
     /* Prepare outgoing message by copying the received one */
     rdcp_message r;
     memcpy(&r, &rdcp_msg_in.header, RDCP_HEADER_SIZE);
