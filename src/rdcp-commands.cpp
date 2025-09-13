@@ -40,13 +40,13 @@ int dasr_counter = DASR_ROLLOVER - 1;
  * Fill the RDCP Header fields for outgoing responses as the are
  * the same for any outgoing response.
  */
-void rdcp_prepare_response_header(void)
+void rdcp_prepare_response_header(bool reuse_seqnr)
 {
     // Destination, Message Type, Payload Length, Relay123 and the whole Payload
     // must be set before calling this function
     rdcp_response.header.sender = CFG.rdcp_address;
     rdcp_response.header.origin = CFG.rdcp_address;
-    rdcp_response.header.sequence_number = get_next_rdcp_sequence_number(CFG.rdcp_address);
+    if (!reuse_seqnr) rdcp_response.header.sequence_number = get_next_rdcp_sequence_number(CFG.rdcp_address);
     rdcp_response.header.counter = rdcp_get_default_retransmission_counter_for_messagetype(rdcp_response.header.message_type);
 
     /* Update CRC header field */
@@ -110,7 +110,7 @@ void rdcp_cmd_send_echo_response(void)
         rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
     }
 
-    rdcp_prepare_response_header();
+    rdcp_prepare_response_header(false);
     rdcp_pass_response_to_scheduler(current_lora_message.channel);
 
     return;
@@ -178,14 +178,14 @@ void rdcp_cmd_send_da_status_response(void)
         DART.num_rdcp_tx = 0;
     }
 
-    rdcp_prepare_response_header();
+    rdcp_prepare_response_header(false);
     rdcp_pass_response_to_scheduler(CHANNEL433);
 
     /* As the HQ might be next to us, we also have to send this on 868 MHz. */
     rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
     rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
     rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
-    rdcp_prepare_response_header();
+    rdcp_prepare_response_header(true);
     rdcp_pass_response_to_scheduler(CHANNEL868);
 
     /*
@@ -662,14 +662,14 @@ void rdcp_check_heartbeat(void)
         rdcp_response.payload.data[1] = num_mgs / 256;
         rdcp_response.header.rdcp_payload_length = 2 + 2 * num_mgs;
 
-        rdcp_prepare_response_header();
+        rdcp_prepare_response_header(false);
         rdcp_pass_response_to_scheduler(CHANNEL433);
 
         /* As the HQ might be next to us, we also have to send this on 868 MHz. */
         rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
-        rdcp_prepare_response_header();
+        rdcp_prepare_response_header(true); // re-use sequence number from 433 MHz channel message
         rdcp_pass_response_to_scheduler(CHANNEL868);
     }
 
@@ -897,7 +897,7 @@ void rdcp_command_fetch_from_neighbor(void)
   rdcp_response.payload.data[0] = my_latest % 256;
   rdcp_response.payload.data[1] = my_latest / 256;
 
-  rdcp_prepare_response_header();
+  rdcp_prepare_response_header(false);
   rdcp_pass_response_to_scheduler(CHANNEL433);
 
   return;
@@ -917,7 +917,7 @@ void rdcp_command_fetch_one_from_neighbor(uint16_t refnr)
   rdcp_response.payload.data[0] = refnr % 256;
   rdcp_response.payload.data[1] = refnr / 256;
 
-  rdcp_prepare_response_header();
+  rdcp_prepare_response_header(false);
   rdcp_pass_response_to_scheduler(CHANNEL433);
   currently_in_fetch_mode = true;
 
