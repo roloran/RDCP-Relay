@@ -295,6 +295,17 @@ void rdcp_chain_callback(uint8_t callback_type, bool has_timeout)
             last_periodic_chain_finish = my_millis();
             return;
         }
+
+        /*
+            Check whether we should continue. We might receive a callback (without timeout)
+            although the chain has meanwhile been stopped due to a previous timeout.
+        */
+        if (!CC[TX_CALLBACK_PERIODIC868].in_use)
+        {
+          serial_writeln("INFO: Received TX_CALLBACK_PERIODIC868 without timeout, but chain is no longer in use");
+          return;
+        }
+
         /* 
             We need to determine whether there is at least one more related memory to send. 
         */
