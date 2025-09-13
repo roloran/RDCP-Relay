@@ -365,6 +365,7 @@ void rdcp_periodic_kickstart(void)
             if ((neighbors[i].sender >= RDCP_ADDRESS_MG_LOWERBOUND) && 
                 (neighbors[i].heartbeat) && 
                 (neighbors[i].timestamp > now - 60 * MINUTES_TO_MILLISECONDS) &&
+                (neighbors[i].roamingrec == CFG.rdcp_address) &&
                 (neighbors[i].explicit_refnr)) 
                 {
                     if (neighbors[i].latest_refnr < min_refnr) min_refnr = neighbors[i].latest_refnr + 1;
