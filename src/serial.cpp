@@ -198,6 +198,11 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
       serial_writeln("INFO: Resetting duplicate table");
       rdcp_reset_duplicate_message_table();
     }
+    else if (p1.equals(String("SEQNR")))
+    {
+      serial_writeln("INFO: Resetting own used sequence number");
+      set_next_rdcp_sequence_number(CFG.rdcp_address, 1); // Reset own sequence numbers
+    }
   } // ^ RESET
  else if (s_uppercase.startsWith("SHOW "))
   {
