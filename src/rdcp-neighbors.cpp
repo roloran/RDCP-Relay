@@ -6,10 +6,19 @@ neighbor_table_entry neighbors[MAX_NEIGHBORS];
 
 void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, double snr, int64_t timestamp, bool heartbeat, bool explicit_refnr, uint16_t latest_refnr, uint16_t roamingrec)
 {
+    uint16_t used_sender = sender;
+
+    /* Map neighboring Relays to the old BBK range on their 868 MHz channel */
+    if ((channel == CHANNEL868) &&
+        (sender >= RDCP_ADDRESS_DA_LOWERBOUND) && (sender <= RDCP_ADDRESS_MG_LOWERBOUND))
+    {
+        used_sender -= 0x0100;
+    }
+
     int index = RDCP_INDEX_NONE;
     for (int i=0; i<MAX_NEIGHBORS; i++)
     {
-        if ((neighbors[i].sender == RDCP_ADDRESS_SPECIAL_ZERO) || (neighbors[i].sender == sender))
+        if ((neighbors[i].sender == RDCP_ADDRESS_SPECIAL_ZERO) || (neighbors[i].sender == used_sender))
         {
             index = i;
             break;
@@ -23,7 +32,7 @@ void rdcp_neighbor_register_rx(uint8_t channel, uint16_t sender, double rssi, do
     }
 
     neighbors[index].channel   = channel;
-    neighbors[index].sender    = sender;
+    neighbors[index].sender    = used_sender;
     neighbors[index].rssi      = rssi;
     neighbors[index].snr       = snr;
     neighbors[index].timestamp = timestamp;
