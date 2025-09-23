@@ -26,6 +26,7 @@ extern bool seqnr_reset_requested;
 extern uint16_t new_delivery_receipt_from;
 extern rdcp_memory_table mem;
 extern bool currently_in_fetch_mode;
+bool   oa_reset_seen = false;
 
 rdcp_message rdcp_response;
 int64_t last_heartbeat_sent = RDCP_TIMESTAMP_ZERO;
@@ -552,6 +553,7 @@ void rdcp_cmd_oa_reset(void)
 
     serial_writeln("DA_OA_RESET");
     rdcp_memory_forget();
+    oa_reset_seen = true;
 
     return;
 }
