@@ -97,8 +97,9 @@ void rdcp_cmd_send_echo_response(void)
     rdcp_response.header.message_type = RDCP_MSGTYPE_ECHO_RESPONSE;
     rdcp_response.header.rdcp_payload_length = RDCP_PAYLOAD_SIZE_ECHO_RESPONSE;
 
-    /* Respond on the same channel we got the request from, set Relays accordingly. */
-    if (current_lora_message.channel == CHANNEL433)
+    /* Respond on the same channel we got the request from unless it was forwarded, set Relays accordingly. */
+    if ((current_lora_message.channel == CHANNEL433) || 
+        (rdcp_msg_in.header.origin != rdcp_msg_in.header.sender))
     {
         rdcp_response.header.relay1 = (CFG.oarelays[0] << 4) + 0;
         rdcp_response.header.relay2 = (CFG.oarelays[1] << 4) + 1;
