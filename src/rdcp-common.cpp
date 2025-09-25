@@ -398,8 +398,8 @@ void rdcp_duplicate_table_delete_all_entries(void)
   {
     dupe_table.tableentry[i].sequence_number = 0;
     dupe_table.tableentry[i].last_seen = my_millis();
-    serial_writeln("INFO: Duplicate table entry was reset for all entries");
   }
+  serial_writeln("INFO: Duplicate table entry was reset for all entries");
   return;
 }
 
