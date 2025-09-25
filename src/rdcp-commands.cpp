@@ -27,6 +27,7 @@ extern uint16_t new_delivery_receipt_from;
 extern rdcp_memory_table mem;
 extern bool currently_in_fetch_mode;
 bool   oa_reset_seen = false;
+extern bool do_not_persist_dupetable;
 
 rdcp_message rdcp_response;
 int64_t last_heartbeat_sent = RDCP_TIMESTAMP_ZERO;
@@ -101,19 +102,21 @@ void rdcp_cmd_send_echo_response(void)
     if ((current_lora_message.channel == CHANNEL433) || 
         (rdcp_msg_in.header.origin != rdcp_msg_in.header.sender))
     {
-        rdcp_response.header.relay1 = (CFG.oarelays[0] << 4) + 0;
-        rdcp_response.header.relay2 = (CFG.oarelays[1] << 4) + 1;
-        rdcp_response.header.relay3 = (CFG.oarelays[2] << 4) + 2;
+        rdcp_response.header.relay1 = (CFG.cirerelays[0] << 4) + 0;
+        rdcp_response.header.relay2 = (CFG.cirerelays[1] << 4) + 1;
+        rdcp_response.header.relay3 = (CFG.cirerelays[2] << 4) + 2;
+        rdcp_prepare_response_header(false);
+        rdcp_pass_response_to_scheduler(CHANNEL433);
     }
     else
     {
         rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
+        rdcp_prepare_response_header(false);
+        rdcp_pass_response_to_scheduler(CHANNEL868);
     }
 
-    rdcp_prepare_response_header(false);
-    rdcp_pass_response_to_scheduler(current_lora_message.channel);
 
     return;
 }
@@ -391,6 +394,9 @@ void rdcp_cmd_device_reset(void)
     }
 
     /* We can reset all volatile data by simply restarting. Short delay to make sure DA got the message. */
+    rdcp_duplicate_table_delete_file();
+    rdcp_duplicate_table_delete_all_entries();
+    do_not_persist_dupetable = true;
     rdcp_memory_forget();
     delay(5000);
     ESP.restart();
@@ -526,6 +532,9 @@ void rdcp_cmd_infrastructure_reset(void)
     rdcp_memory_forget();
     reboot_requested = my_millis() + 3 * MINUTES_TO_MILLISECONDS; // Reboot after 3 minutes
     seqnr_reset_requested = true; // Reset sequence numbers on infrastructure reset
+    rdcp_duplicate_table_delete_file();
+    rdcp_duplicate_table_delete_all_entries();
+    do_not_persist_dupetable = true;
 
     return;
 }

@@ -157,6 +157,11 @@ void rdcp_reset_duplicate_message_table(void);
  */
 void rdcp_duplicate_table_restore(void);
 
+void rdcp_duplicate_table_delete_file(void);
+void rdcp_duplicate_table_delete_entry(uint16_t origin);
+void rdcp_duplicate_table_set_entry(uint16_t origin, uint16_t seqnr);
+void rdcp_duplicate_table_delete_all_entries(void);
+
 /**
  * Persist the current duplicate table
  */

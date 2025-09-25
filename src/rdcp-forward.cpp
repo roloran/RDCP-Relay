@@ -113,6 +113,11 @@ void rdcp_forward_schedule(bool add_random_delay)
         { 
             forced_time = 0 - random(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
         }
+        
+        char info[INFOLEN];
+        snprintf(info, INFOLEN, "INFO: Preparing 868 forward of %04X-%04X heard from %04X", 
+            rdcp_msg_in.header.origin, rdcp_msg_in.header.sequence_number, rdcp_msg_in.header.sender);
+        serial_writeln(info);
 
         rdcp_txqueue_add(CHANNEL868, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,
           important, NOFORCEDTX, TX_CALLBACK_FORWARD, forced_time);

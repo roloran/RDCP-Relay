@@ -21,6 +21,7 @@ int64_t  contributed_propagation_cycle_end = RDCP_TIMESTAMP_ZERO;
 tracked_propagation_cycle propagation_cycles[MAX_TRACKED_PCS];
 
 #define FILENAME_DUPETABLE "/dupetable"
+bool do_not_persist_dupetable = false;
 
 int64_t rdcp_get_channel_free_estimation(uint8_t channel)
 {
@@ -356,8 +357,60 @@ void rdcp_duplicate_table_restore(void)
   return;
 }
 
+void rdcp_duplicate_table_delete_file(void)
+{
+  serial_writeln("INFO: Deleting duplicate table file");
+  LittleFS.remove(FILENAME_DUPETABLE);
+  return;
+}
+
+void rdcp_duplicate_table_delete_entry(uint16_t origin)
+{
+  for (int i=0; i != dupe_table.num_entries; i++)
+  {
+    if (dupe_table.tableentry[i].origin == origin)
+    {
+      dupe_table.tableentry[i].sequence_number = 0;
+      dupe_table.tableentry[i].last_seen = my_millis();
+      serial_writeln("INFO: Duplicate table entry was reset for given origin");
+    }
+  }
+  return;
+}
+
+void rdcp_duplicate_table_set_entry(uint16_t origin, uint16_t seqnr)
+{
+  for (int i=0; i != dupe_table.num_entries; i++)
+  {
+    if (dupe_table.tableentry[i].origin == origin)
+    {
+      dupe_table.tableentry[i].sequence_number = seqnr;
+      dupe_table.tableentry[i].last_seen = my_millis();
+      serial_writeln("INFO: Duplicate table entry was set for given origin");
+    }
+  }
+  return;
+}
+
+void rdcp_duplicate_table_delete_all_entries(void)
+{
+  for (int i=0; i != dupe_table.num_entries; i++)
+  {
+    dupe_table.tableentry[i].sequence_number = 0;
+    dupe_table.tableentry[i].last_seen = my_millis();
+    serial_writeln("INFO: Duplicate table entry was reset for all entries");
+  }
+  return;
+}
+
 void rdcp_duplicate_table_persist(void)
 {
+  if (do_not_persist_dupetable == true)
+  {
+    serial_writeln("INFO: Refusing to persist duplicate table");
+    return;
+  }
+
   serial_writeln("INFO: Persisting dupe table");
 #ifdef ROLORAN_USE_FFAT
   FFat.remove(FILENAME_DUPETABLE);

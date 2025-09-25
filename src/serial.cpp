@@ -105,7 +105,7 @@ String serial_readln(void)
 
 void serial_banner(void)
 {
-  Serial.println(SERIAL_PREFIX "INFO: Firmware for scenario " FW_SCENARIO ", RDCP " FW_RDCP ", build " FW_VERSION ", " __DATE__ " " __TIME__);
+  Serial.println(SERIAL_PREFIX "INFO: Firmware for the scenario " FW_SCENARIO ", RDCP " FW_RDCP ", build " FW_VERSION ", " __DATE__ " " __TIME__);
   char buf[INFOLEN];
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP address    : %04X (relay id %01X, %s)\0", SERIAL_PREFIX, CFG.rdcp_address, CFG.relay_identifier, CFG.name); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
   snprintf(buf, INFOLEN, "%sINFO: Device RDCP multicast  : %04X %04X %04X %04X %04X\0", SERIAL_PREFIX, CFG.multicast[0], CFG.multicast[1], CFG.multicast[2], CFG.multicast[3], CFG.multicast[4]); Serial.println(buf); if (CFG.bt_enabled) SerialBT.println(buf);
@@ -651,6 +651,47 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     set_next_rdcp_sequence_number(CFG.rdcp_address, new_value);
     serial_writeln("INFO: Changed RDCP Sequence Number to " + p1);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("RDCPDUPETABLERESET"))
+  {
+    rdcp_duplicate_table_delete_all_entries();
+  }
+  else if (s_uppercase.startsWith("RDCPDUPETABLEDELETE"))
+  {
+    rdcp_duplicate_table_delete_file();
+  }
+  else if (s_uppercase.startsWith("RDCPDUPETABLEZAP "))
+  {
+    String p1 = s.substring(17);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t origin = strtol(buffer, NULL, 16);
+    rdcp_duplicate_table_delete_entry(origin);
+  }
+  else if (s_uppercase.startsWith("RDCPDUPETABLESET "))
+  {
+    char buffer[32];
+
+    String p1 = s.substring(17, 21);
+    p1.toCharArray(buffer, 32);
+    uint16_t origin = strtol(buffer, NULL, 16);
+
+    String p2 = s.substring(22);
+    p2.toCharArray(buffer, 32);
+    uint16_t seqnr = strtol(buffer, NULL, 16);
+
+    rdcp_duplicate_table_set_entry(origin, seqnr);
+  }
+  else if (s_uppercase.startsWith("MAINTENANCE"))
+  {
+    serial_writeln("INFO: Preparing manual switch to MAINTENANCE MODE");
+    enable_bt();
+    serial_writeln("DA_MAINTENANCE");
+  }
+  else if (s_uppercase.startsWith("SERIAL "))
+  {
+    String p1 = s.substring(7);
+    serial_writeln(p1);
   }
   else if (s_uppercase.startsWith("BEACON433 "))
   {

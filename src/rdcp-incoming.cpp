@@ -127,7 +127,14 @@ void rdcp_handle_incoming_lora_message(void)
 
         if (current_lora_message.channel == CHANNEL433)
         {
-            if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(false); // do not add a delay
+            if (rdcp_check_forward_868_relevance()) 
+            {   
+                rdcp_forward_schedule(false); // do not add a delay
+            }
+            else 
+            {
+                serial_writeln("INFO: Message received on 433 MHz channel not relevant for 868-forwarding");
+            }
             if (rdcp_check_forward_da_relevance()) rdcp_msg_to_da_via_serial();
         }
         else /* RDCP Message received on CHANNEL868 */
