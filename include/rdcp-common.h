@@ -157,9 +157,27 @@ void rdcp_reset_duplicate_message_table(void);
  */
 void rdcp_duplicate_table_restore(void);
 
+/**
+ * Delete the duplicate table file
+ */
 void rdcp_duplicate_table_delete_file(void);
+
+/**
+ * Remove a specific origin from the duplicate table
+ * @param origin RDCP Address of entry to remove
+ */
 void rdcp_duplicate_table_delete_entry(uint16_t origin);
+
+/**
+ * Set a specific last-seen sequence number for an RDCP address in the duplicate table
+ * @param origin RDCP Address (Origin) to change setting for
+ * @param seqnr New most recently seen to set for this Origin
+ */
 void rdcp_duplicate_table_set_entry(uint16_t origin, uint16_t seqnr);
+
+/**
+ * Clear the duplicate table (all entries)
+ */
 void rdcp_duplicate_table_delete_all_entries(void);
 
 /**
