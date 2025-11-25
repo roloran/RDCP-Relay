@@ -168,7 +168,8 @@ void rdcp_handle_incoming_lora_message(void)
                         if ((rdcp_msg_in.header.sender < RDCP_ADDRESS_BBKDA_LOWERBOUND) &&
                             (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
                         {
-                            if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
+                            if (rdcp_msg_in.header.destination != CFG.rdcp_address) 
+                                rdcp_forward_schedule(true); // add a delay
                         }
                         /*
                             The same applies to messages sent by other MGs so they reach the HQ on 868 MHz
@@ -177,7 +178,8 @@ void rdcp_handle_incoming_lora_message(void)
                         if ((rdcp_msg_in.header.sender >= RDCP_ADDRESS_MG_LOWERBOUND) &&
                             (rdcp_msg_in.header.message_type != RDCP_MSGTYPE_HEARTBEAT)) // don't echo back heartbeats
                         {
-                            if (rdcp_check_forward_868_relevance()) rdcp_forward_schedule(true); // add a delay
+                            if (rdcp_check_forward_868_relevance()) 
+                                rdcp_forward_schedule(true); // add a delay
                         }
                     }
 
