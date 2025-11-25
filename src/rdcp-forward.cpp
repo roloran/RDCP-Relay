@@ -112,7 +112,7 @@ void rdcp_forward_schedule(int add_random_delay)
         if (add_random_delay == FORWARD_DELAY_SHORT)
         { // used as EP
           // delay long enough to have a good chance to start distributing on 433 MHz channel first
-          forced_time = 0 - random(2000, 5000); // 2 to 5 seconds
+          forced_time = 0 - my_random_in_range(2000, 5000); // 2 to 5 seconds
         }
         else if (add_random_delay == FORWARD_DELAY_PROPORTIONAL)
         { // used as non-EP
@@ -120,8 +120,6 @@ void rdcp_forward_schedule(int add_random_delay)
           forced_time -= 5000; 
           // add time proportional to timeslot duration (message length, retransmissions) and own relay id 
           forced_time -= (1 + CFG.relay_identifier) * rdcp_get_timeslot_duration(CHANNEL868, data_for_scheduler);
-          // vary by additional 0-2 seconds
-          forced_time -= random(0, 2000);
         }
         
         char info[INFOLEN];

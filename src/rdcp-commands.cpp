@@ -80,7 +80,7 @@ void rdcp_pass_response_to_scheduler(uint8_t channel)
         We also need to delay in case we received a command via 868 MHz
         and do not know the 433 MHz propagation cycle yet.
     */
-    int64_t random_delay = 0 - random(2000 * CFG.sf_multiplier, 3000 * CFG.sf_multiplier); // history: 2-5 s, last: 9-10 s
+    int64_t random_delay = 0 - my_random_in_range(2000 * CFG.sf_multiplier, 3000 * CFG.sf_multiplier); // history: 2-5 s, last: 9-10 s
 
     rdcp_txqueue_add(channel, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
       NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
@@ -855,7 +855,7 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
-    int64_t random_delay = 0 - random(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    int64_t random_delay = 0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
     uint8_t data_for_scheduler[INFOLEN];
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++)
@@ -878,7 +878,7 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
-    random_delay = 0 - random(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    random_delay = 0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];

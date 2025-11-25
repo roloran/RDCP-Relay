@@ -25,5 +25,10 @@ void cpu_fast(void);
  */
 void cpu_slow(void);
 
+/**
+ * Generate a random number between r_min and r_max.
+ */
+uint32_t my_random_in_range(uint32_t r_min, uint32_t r_max);
+
 #endif 
 /* EOF */

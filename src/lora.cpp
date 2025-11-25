@@ -37,6 +37,11 @@ bool cadMode868          = false;
 
 SemaphoreHandle_t highlander = NULL;
 
+uint8_t radio868_random_byte(void)
+{
+  return radio868.randomByte();
+}
+
 int start_receive_868(void)
 {
   digitalWrite(RADIO868TXEN, LOW);
