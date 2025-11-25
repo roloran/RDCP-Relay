@@ -61,8 +61,7 @@ bool rdcp_txqueue_add(uint8_t channel, uint8_t *data, uint8_t len, bool importan
             }
           }
           // Add the (negative) relative time to last entry's time
-          forced_time = highest_timestamp - forced_time;
-          txq[channel].entries[i].originally_scheduled_time = forced_time;
+          txq[channel].entries[i].originally_scheduled_time = highest_timestamp - forced_time;
         }
         else 
         { /* Positive absolute time */
@@ -76,8 +75,8 @@ bool rdcp_txqueue_add(uint8_t channel, uint8_t *data, uint8_t len, bool importan
         for (int j=0; j < len; j++) txq[channel].entries[i].payload[j] = data[j];
   
         char buf[INFOLEN];
-        snprintf(buf, INFOLEN, "INFO: Outgoing message scheduled -> TXQ%di %d, len %d, TSd %" PRId64 ", @%" PRId64, 
-            channel == CHANNEL433 ? 4 : 8, i, len, txq[channel].entries[i].timeslot_duration, txq[channel].entries[i].currently_scheduled_time);
+        snprintf(buf, INFOLEN, "INFO: Outgoing message scheduled -> TXQ%di %d, len %d, TSd %" PRId64 ", @%" PRId64 ", ft%" PRId64, 
+            channel == CHANNEL433 ? 4 : 8, i, len, txq[channel].entries[i].timeslot_duration, txq[channel].entries[i].currently_scheduled_time, forced_time);
         serial_writeln(buf);
   
         rdcp_dump_txq(channel);

@@ -129,7 +129,7 @@ void rdcp_entrypoint_schedule(void)
             important = true;
         }
 
-        int64_t schedtime = 0 - 10 * SECONDS_TO_MILLISECONDS; // history: TX_WHEN_CF
+        int64_t schedtime = 0 - CFG.sf_multiplier * SECONDS_TO_MILLISECONDS; // history: TX_WHEN_CF
 
         rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + r.header.rdcp_payload_length,
           important, NOFORCEDTX, TX_CALLBACK_ENTRY, schedtime);

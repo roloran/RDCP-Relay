@@ -21,7 +21,7 @@ void cpu_slow(void)
     return;
 }
 
-uint32_t my_random_in_range(uint32_t r_min, uint32_t r_max)
+int64_t my_random_in_range(uint32_t r_min, uint32_t r_max)
 {
     static bool srand_called = false;
 
@@ -35,7 +35,7 @@ uint32_t my_random_in_range(uint32_t r_min, uint32_t r_max)
         srand(my_seed);
     }
 
-    uint32_t result = rand() % (r_max - r_min + 1) + r_min;
+    int64_t result = rand() % (r_max - r_min + 1) + r_min;
     return result;
 }
 
