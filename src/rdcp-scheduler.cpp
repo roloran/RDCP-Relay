@@ -164,6 +164,10 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
         if ( (txq[channel].entries[i].num_of_reschedules > 20) ||
              (txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time > 300 * 1000) )
         {
+          snprintf(info, INFOLEN, "WARNING: Dropped TXQ%d entry %d based on %d re-schedules and %" PRId64 " ms delay.", 
+            channel == CHANNEL433 ? 4 : 8, i, txq[channel].entries[i].num_of_reschedules, 
+            txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time);
+          serial_writeln(info);
           txq[channel].entries[i].waiting = false; // drop message due to excessive delay when trying to send
           txq[channel].entries[i].payload_length = 0;
           txq[channel].entries[i].in_process = false;
