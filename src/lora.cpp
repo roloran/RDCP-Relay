@@ -55,6 +55,7 @@ int send_now_868(String s)
   digitalWrite(RADIO868RXEN, LOW);
   delay(1);
   digitalWrite(RADIO868TXEN, HIGH);
+  delay(1);
   if (CFG.send_enabled)
   {
     radio868.transmit(s);
@@ -72,6 +73,7 @@ bool start_send_868(const uint8_t* data, size_t len)
   digitalWrite(RADIO868RXEN, LOW);
   delay(1);
   digitalWrite(RADIO868TXEN, HIGH);
+  delay(1);
   if (CFG.send_enabled)
   {
     return radio868.startTransmit(data, len);
@@ -96,6 +98,7 @@ int send_now_433(String s)
   digitalWrite(RADIO433RXEN, LOW);
   delay(1);
   digitalWrite(RADIO433TXEN, HIGH);
+  delay(1);
   if (CFG.send_enabled)
   {
     radio433.transmit(s);
@@ -113,6 +116,7 @@ bool start_send_433(const uint8_t* data, size_t len)
   digitalWrite(RADIO433RXEN, LOW);
   delay(1);
   digitalWrite(RADIO433TXEN, HIGH);
+  delay(1);
   if (CFG.send_enabled)
   {
     return radio433.startTransmit(data, len);
