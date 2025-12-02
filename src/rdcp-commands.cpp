@@ -66,7 +66,7 @@ void rdcp_prepare_response_header(bool reuse_seqnr)
  * Schedule the prepared response for transmission on the given channel.
  * @param channel Either CHANNEL433 or CHANNEL868
  */
-void rdcp_pass_response_to_scheduler(uint8_t channel)
+void rdcp_pass_response_to_scheduler(uint8_t channel, bool no_larger_delay=false)
 {
     uint8_t data_for_scheduler[INFOLEN];
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
@@ -80,10 +80,26 @@ void rdcp_pass_response_to_scheduler(uint8_t channel)
         We also need to delay in case we received a command via 868 MHz
         and do not know the 433 MHz propagation cycle yet.
     */
-    int64_t random_delay = 0 - my_random_in_range(2000 * CFG.sf_multiplier, 3000 * CFG.sf_multiplier); // history: 2-5 s, last: 9-10 s
+    // int64_t random_delay = 0 - my_random_in_range(2000 * CFG.sf_multiplier, 3000 * CFG.sf_multiplier); // history: 2-5 s, last: 9-10 s
+
+    int64_t my_delay = -10 * SECONDS_TO_MILLISECONDS * CFG.sf_multiplier; // base delay of 10 seconds (* sf_multiplier) 
+    if (channel == CHANNEL433)
+    { // delay 2-3 seconds (* sf_multiplier) based on own relay identifier
+      my_delay -= CFG.sf_multiplier * (2 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier);
+    }
+    else 
+    {
+      // delay 7-8 seconds (* sf_multiplier) based on own relay identifier
+      my_delay -= CFG.sf_multiplier * (7 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier);
+    }
+
+    if (no_larger_delay)
+    { // if larger delays have been disabled, use a minimum delay based on relay identifier
+        my_delay = -100 * (1 + CFG.relay_identifier);
+    }
 
     rdcp_txqueue_add(channel, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
-      NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
+      NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, my_delay);
 
     return;
 }
@@ -116,7 +132,6 @@ void rdcp_cmd_send_echo_response(void)
         rdcp_prepare_response_header(false);
         rdcp_pass_response_to_scheduler(CHANNEL868);
     }
-
 
     return;
 }
@@ -156,7 +171,8 @@ void rdcp_cmd_send_da_status_response(void)
                 if (want_reset) neighbors[i].counted = true;
             }
         }
-        if ((neighbors[i].sender >= RDCP_ADDRESS_BBKDA_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND))
+        // if ((neighbors[i].sender >= RDCP_ADDRESS_BBKDA_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND))
+        if (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND) // include HQ devices
         {
             if (!neighbors[i].counted)
             {
@@ -680,7 +696,7 @@ void rdcp_check_heartbeat(void)
         rdcp_response.header.rdcp_payload_length = 2 + 2 * num_mgs;
 
         rdcp_prepare_response_header(false);
-        rdcp_pass_response_to_scheduler(CHANNEL433);
+        rdcp_pass_response_to_scheduler(CHANNEL433, true);
 
         /* As the HQ might be next to us, we also have to send this on 868 MHz. */
         rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
@@ -921,7 +937,7 @@ void rdcp_command_fetch_from_neighbor(void)
   rdcp_response.payload.data[1] = my_latest / 256;
 
   rdcp_prepare_response_header(false);
-  rdcp_pass_response_to_scheduler(CHANNEL433);
+  rdcp_pass_response_to_scheduler(CHANNEL433, true);
 
   return;
 }
@@ -941,7 +957,7 @@ void rdcp_command_fetch_one_from_neighbor(uint16_t refnr)
   rdcp_response.payload.data[1] = refnr / 256;
 
   rdcp_prepare_response_header(false);
-  rdcp_pass_response_to_scheduler(CHANNEL433);
+  rdcp_pass_response_to_scheduler(CHANNEL433, true);
   currently_in_fetch_mode = true;
 
   return;

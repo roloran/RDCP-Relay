@@ -35,6 +35,7 @@ The commands `SHOW CONFIG` and `RESET CONFIG` can be used similar to other ROLOR
 - `LORAPL 15 15` sets the LoRa preamble length for both radios in number of symbols.
 - `RDCPADDR 0200` sets the RDCP address of the device. Make sure to use the appropriate RDCP address range for this kind of devices.
 - `RDCPRLID 0` sets the RDCP Relay Identifier of the device. Double-check that this setting is correct and unique in the overall RDCP infrastructure or the whole mesh will drown in packet collisions.
+- `RDCPNUMRL 10` sets the number of relays used in the current RDCP scenario.
 - `RDCPRLOA 123` sets the three other relays to use in the OA direction. Make sure you have chosen a good plan for the whole RDCP infrastructure.
 - `RDCPRLCR 34E` sets the three other relays to use in the CIRE direction. See note about `RDCPRLOA`.
 - `RDCPTS7R DE` sets the Relay1 RDCP Header field value for Timeslot-7 transmission.
