@@ -105,7 +105,9 @@ void rdcp_handle_incoming_lora_message(void)
     uint16_t latest_refnr = RDCP_OA_REFNR_SPECIAL_ZERO;
     uint16_t roamingrec = RDCP_ADDRESS_SPECIAL_ZERO;
     if ((current_lora_message.channel == CHANNEL868) && 
-        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT))
+        (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT) && 
+        (rdcp_msg_in.header.sequence_number == RDCP_SEQUENCENR_SPECIAL_ZERO) &&
+        (rdcp_msg_in.header.origin == rdcp_msg_in.header.sender))
     { 
         heartbeat = true;
         if (rdcp_msg_in.header.rdcp_payload_length == RDCP_PAYLOAD_SIZE_MG_HEARTBEAT)
@@ -209,6 +211,12 @@ void rdcp_handle_incoming_lora_message(void)
                         rdcp_txqueue_reschedule(CHANNEL868, 0); // re-schedule based on CFEst
                     }
                     rdcp_forward_schedule(FORWARD_DELAY_PROPORTIONAL); // add a delay
+                }
+                else if (rdcp_msg_in.header.message_type == RDCP_MSGTYPE_HEARTBEAT)
+                { // Forward Heartbeats only if their origin is another DA, not an MG
+                    if ((rdcp_msg_in.header.origin >= RDCP_ADDRESS_BBKDA_LOWERBOUND) &&
+                        (rdcp_msg_in.header.origin <= RDCP_ADDRESS_MG_LOWERBOUND)) 
+                        rdcp_forward_schedule(FORWARD_DELAY_PROPORTIONAL); // add a delay
                 }
                 if (rdcp_check_forward_da_relevance()) rdcp_msg_to_da_via_serial();
             }
