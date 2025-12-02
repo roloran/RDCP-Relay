@@ -35,6 +35,12 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content);
  */
 void rdcp_command_fetch_one_from_neighbor(uint16_t refnr);
 
+/**
+ * Send a DA Status Response.
+ * @param unsolicited true if sent without request, false if in response to DA Status Request
+ */
+void rdcp_cmd_send_da_status_response(bool unsolicited);
+
 struct rtc_entry {
     bool active     = false;
     int64_t alarm   = 0;

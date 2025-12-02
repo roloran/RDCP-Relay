@@ -55,6 +55,7 @@ Additional commands:
 - `OMRETRANS 0` sets the initial value of the counter RDCP Header field when transmitting memories.
 - `MAXPERAGE 24` sets the maximum age of memories selected for the Periodic868 chain.
 - `PERIODICS 30` sets the Periodic868 chain kickstarter interval.
+- `UNSOLICIT 180` sets the unsolicited DA Status Response interval.
 - `RDCPDUPETABLERESET` resets the device's RDCP duplicate table, e.g., after changes to the overall infrastructure.
 - `RDCPDUPETABLEDELETE` deletes the device's persisted duplicate table.
 - `RDCPDUPETABLEZAP 020C` deletes the duplicate table entry for a specific RDCP address.

@@ -6,7 +6,7 @@
 
 #define FW_SCENARIO   "Neuhaus v2.0"
 #define FW_RDCP       "v0.4"
-#define FW_VERSION    "001"
+#define FW_VERSION    "002"
 
 #define SERIAL_PREFIX "DA: "
 

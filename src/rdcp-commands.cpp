@@ -32,6 +32,7 @@ extern bool do_not_persist_dupetable;
 rdcp_message rdcp_response;
 int64_t last_heartbeat_sent = RDCP_TIMESTAMP_ZERO;
 int64_t fetch_timeout = RDCP_TIMESTAMP_ZERO;
+int64_t last_dasresp_sent = RDCP_TIMESTAMP_ZERO;
 bool rtc_active = false;
 rtc_entry RTC[MAX_RTC];
 
@@ -139,10 +140,17 @@ void rdcp_cmd_send_echo_response(void)
 /**
  * Send a DA Status Reponse after receiving a DA Status Request.
  */
-void rdcp_cmd_send_da_status_response(void)
+void rdcp_cmd_send_da_status_response(bool unsolicited = false)
 {
-    if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal status request only
-    uint8_t want_reset = rdcp_msg_in.payload.data[0];
+    uint8_t want_reset = 0x00;
+
+    if (!unsolicited)
+    {
+        if (rdcp_msg_in.header.destination != CFG.rdcp_address) return; // respond to personal status request only
+        want_reset = rdcp_msg_in.payload.data[0];
+    }
+
+    last_dasresp_sent = my_millis(); // Track when we sent the most recent DA Status Response
 
     rdcp_response.header.destination  = RDCP_HQ_MULTICAST_ADDRESS;
     rdcp_response.header.message_type = RDCP_MSGTYPE_DA_STATUS_RESPONSE;
@@ -215,6 +223,7 @@ void rdcp_cmd_send_da_status_response(void)
       this contributes to collision avoidance by lowering the probability that
       multiple DAs send their Heartbeats at roughly the same time.
     */
+    if (unsolicited) return; // do not align on self-timed DA Status Requests
     dasr_counter++;
     if (dasr_counter >= DASR_ROLLOVER)
     {

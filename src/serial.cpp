@@ -17,6 +17,7 @@ extern da_config CFG;
 extern runtime_da_data DART;
 BluetoothSerial SerialBT;
 bool bt_on = false;
+extern int64_t last_dasresp_sent;
 // Preferences preferences;
 
 void setup_serial(void)
@@ -632,6 +633,16 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     uint16_t new_value = strtol(buffer, NULL, 10);
     CFG.periodic_interval = new_value * MINUTES_TO_MILLISECONDS;
     serial_writeln("INFO: Changed Periodic868 interval to " + p1 + " minutes");
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
+  else if (s_uppercase.startsWith("UNSOLICIT "))
+  {
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint16_t new_value = strtol(buffer, NULL, 10);
+    CFG.unsolicited_dasrep_timer = new_value * MINUTES_TO_MILLISECONDS;
+    serial_writeln("INFO: Changed unsolicited DA Status Response interval to " + p1 + " minutes");
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
   else if (s_uppercase.startsWith("CORRIDOR "))

@@ -61,6 +61,7 @@ extern callback_chain CC[NUM_TX_CALLBACKS];
 extern da_config CFG;
 extern bool currently_in_fetch_mode;
 extern bool rtc_active;
+extern int64_t last_dasresp_sent;
 
 /**
  * Loop task for periodic actions
@@ -122,6 +123,10 @@ void loop()
           currently_in_fetch_mode = true;
           rdcp_command_fetch_from_neighbor(); // Fetch All New Messages from configured neighbor
         }
+      }
+      if ((CFG.unsolicited_dasrep_timer > 0) && (my_millis() > last_dasresp_sent + CFG.unsolicited_dasrep_timer))
+      {
+        rdcp_cmd_send_da_status_response(true); // send unsolicited DA Status Response
       }
     }
     if (minute_counter == 30)

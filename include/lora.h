@@ -83,6 +83,7 @@ struct da_config {
     int64_t  beacon_interval[NUMCHANNELS] = {0, 0};     /// Beacon mode intervals
     uint16_t corridor_basetime  = 10;                   /// seconds to keep channel free for ACKs when hearing CIREs, own basetime, 1-2x for other DAs
     uint8_t  sf_multiplier      = 1;                    /// factor for random delays, 1 for SF7
+    uint64_t unsolicited_dasrep_timer = 180 * MINUTES_TO_MILLISECONDS; /// Send unsolicited DA Status Reponse if no Status Request received
 };
 
 #define MAX_LORA_PAYLOAD_SIZE 250
