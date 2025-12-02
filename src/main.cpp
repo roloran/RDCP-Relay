@@ -117,8 +117,11 @@ void loop()
       if (!has_initially_fetched)
       {
         has_initially_fetched = true;
-        currently_in_fetch_mode = true;
-        rdcp_command_fetch_from_neighbor(); // Fetch All New Messages from configured neighbor
+        if (CFG.fetch_enabled)
+        {
+          currently_in_fetch_mode = true;
+          rdcp_command_fetch_from_neighbor(); // Fetch All New Messages from configured neighbor
+        }
       }
     }
     if (minute_counter == 30)

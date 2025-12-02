@@ -428,6 +428,18 @@ void serial_process_command(String s, String processing_mode, bool persist_selec
     serial_writeln(info);
     if (persist_selected_commands) persist_serial_command_for_replay(s);
   }
+  else if (s_uppercase.startsWith("RDCPNUMRL "))
+  { // RDCPNUMRL 10
+    // Sets total number of relays in RDCP scenario
+    String p1 = s.substring(10);
+    char buffer[32];
+    p1.toCharArray(buffer, 32);
+    uint8_t new_relay_num = strtol(buffer, NULL, 10);
+    CFG.scenario_num_relays = new_relay_num;
+    snprintf(info, INFOLEN, "INFO: Changed number of relays in RDCP scenario to %d", CFG.scenario_num_relays);
+    serial_writeln(info);
+    if (persist_selected_commands) persist_serial_command_for_replay(s);
+  }
   else if (s_uppercase.startsWith("RDCPRLOA "))
   { // RDCPRLOA 123
     // Sets the other relays to use for OAs; 3-hex-digit (other relay's identifiers)

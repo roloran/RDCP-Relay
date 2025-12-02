@@ -196,16 +196,15 @@ void rdcp_cmd_send_da_status_response(void)
     /*
       We use DA Status Requests periodically to align when we send Heartbeats.
       Based on the assumption that DA Status Requests are spread evenly by the HQ,
-      this contributes to collision avoidance by lowering the propability that
+      this contributes to collision avoidance by lowering the probability that
       multiple DAs send their Heartbeats at roughly the same time.
     */
     dasr_counter++;
     if (dasr_counter >= DASR_ROLLOVER)
     {
         dasr_counter = 0;
-        double factor = (CFG.relay_identifier * 1.0) / 2.0;
-        int factor_int = (int) factor;
-        last_heartbeat_sent = my_millis() - (3 + factor_int) * MINUTES_TO_MILLISECONDS;
+        last_heartbeat_sent = my_millis() - CFG.heartbeat_interval + (30 * SECONDS_TO_MILLISECONDS * CFG.sf_multiplier) + 
+            (3 * SECONDS_TO_MILLISECONDS * CFG.relay_identifier * CFG.sf_multiplier);
     }
 
     return;
@@ -632,6 +631,12 @@ void rdcp_cmd_fetch_one(void)
 void rdcp_check_heartbeat(void)
 {
     if (CFG.heartbeat_interval == 0) return; // Heartbeat-sending disabled
+
+    if (last_heartbeat_sent == RDCP_TIMESTAMP_ZERO)
+    { // Set initial delay for heartbeat messages
+      // (intended to evenly spread heartbeat messages after scenario-wide device resets)
+      last_heartbeat_sent = (CFG.heartbeat_interval / CFG.scenario_num_relays) * (CFG.relay_identifier + 1);
+    }
 
     int64_t now = my_millis();
     if (last_heartbeat_sent + CFG.heartbeat_interval < now)
