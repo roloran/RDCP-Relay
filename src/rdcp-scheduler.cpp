@@ -146,22 +146,25 @@ bool rdcp_txqueue_reschedule(uint8_t channel, int64_t offset)
           }
         }
 
-        snprintf(info, INFOLEN, "INFO: TXQ%d entry %d re-scheduled (mode %d) by %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
-          channel == CHANNEL433 ? 4 : 8, i, reschedule_mode, rescheduled_by, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
-        serial_writeln(info);
+        if (rescheduled_by > 0)
+        {
+          snprintf(info, INFOLEN, "INFO: TXQ%d entry %d re-scheduled (mode %d) by %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
+           channel == CHANNEL433 ? 4 : 8, i, reschedule_mode, rescheduled_by, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
+          serial_writeln(info);
+        }
   
         if (txq[channel].entries[i].currently_scheduled_time < now)
         {
           if (offset < 0) offset = -1 * offset;
           txq[channel].entries[i].currently_scheduled_time = now + offset;
-          snprintf(info, INFOLEN, "INFO: TXQ%d entry %d re-scheduled (again) to %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
+          snprintf(info, INFOLEN, "INFO: TXQ%d entry %d re-scheduled from past to %" PRId64 " ms, r%" PRId64 "ms, CFr%" PRId64 "ms",
             channel == CHANNEL433 ? 4 : 8, i, txq[channel].entries[i].currently_scheduled_time, txq[channel].entries[i].currently_scheduled_time - now, cfest-now);
           serial_writeln(info); 
         }
   
         if (txq[channel].entries[i].important) continue;
-        if ( (txq[channel].entries[i].num_of_reschedules > 20) ||
-             (txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time > 300 * 1000) )
+        if ( (txq[channel].entries[i].num_of_reschedules > 50) ||
+             (txq[channel].entries[i].currently_scheduled_time - txq[channel].entries[i].originally_scheduled_time > 10 * MINUTES_TO_MILLISECONDS) )
         {
           snprintf(info, INFOLEN, "WARNING: Dropped TXQ%d entry %d based on %d re-schedules and %" PRId64 " ms delay.", 
             channel == CHANNEL433 ? 4 : 8, i, txq[channel].entries[i].num_of_reschedules, 
