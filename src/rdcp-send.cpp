@@ -193,10 +193,11 @@ void rdcp_callback_txfin(uint8_t channel)
       // When we finished transmitting, others expect the channel to be free
       // and might want to start sending urgent messages. Thus, as we just used
       // the channel for ourselves for some time, give them a chance.
-      int64_t random_delay = my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
-      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %d ms due to finished transmission", channel == CHANNEL433 ? 433:868, random_delay);
+      //int64_t random_delay = my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
+      int64_t my_delay = 1 * SECONDS_TO_MILLISECONDS + 100 * (1 + CFG.relay_identifier) * CFG.sf_multiplier;
+      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %d ms due to finished transmission", channel == CHANNEL433 ? 433:868, my_delay);
       serial_writeln(buf);
-      rdcp_txqueue_reschedule(channel, -random_delay);
+      rdcp_txqueue_reschedule(channel, 0 - my_delay);
     }
   
     return;
@@ -232,11 +233,12 @@ bool rdcp_callback_cad(uint8_t channel, bool cad_busy)
         start_receive_433();
         txq[channel].entries[tx_ongoing[channel]].in_process = false;
         tx_ongoing[channel] = -1;
-        int64_t random_delay = my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
-        snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, random_delay, retry);
+        // int64_t random_delay = my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier); // history: 10-20 s
+        int64_t my_delay = 1 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier * CFG.sf_multiplier;
+        snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, my_delay, retry);
         serial_writeln(buf);
-        rdcp_txqueue_reschedule(channel, -random_delay);
-        if (CFEst[channel] < my_millis() + random_delay) CFEst[channel] = my_millis() + random_delay; // Don't re-schedule twice
+        rdcp_txqueue_reschedule(channel, 0 - my_delay);
+        if (CFEst[channel] < my_millis() + my_delay) CFEst[channel] = my_millis() + my_delay; // Don't re-schedule twice
       }
     }
     else if (retry <= 4)
@@ -248,11 +250,12 @@ bool rdcp_callback_cad(uint8_t channel, bool cad_busy)
       if (channel == CHANNEL433) { start_receive_433(); } else { start_receive_868(); }
       txq[channel].entries[tx_ongoing[channel]].in_process = false;
       tx_ongoing[channel] = -1;
-      int64_t random_delay = my_random_in_range(2100 * CFG.sf_multiplier, 2500 * CFG.sf_multiplier);
-      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, random_delay, retry);
+      // int64_t random_delay = my_random_in_range(2100 * CFG.sf_multiplier, 2500 * CFG.sf_multiplier);
+      int64_t my_delay = 2 * SECONDS_TO_MILLISECONDS + 50 * CFG.relay_identifier * CFG.sf_multiplier;
+      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, my_delay, retry);
       serial_writeln(buf);
-      rdcp_txqueue_reschedule(channel, -random_delay);
-      if (CFEst[channel] < my_millis() + random_delay) CFEst[channel] = my_millis() + random_delay; // Don't re-schedule twice
+      rdcp_txqueue_reschedule(channel, 0 - my_delay);
+      if (CFEst[channel] < my_millis() + my_delay) CFEst[channel] = my_millis() + my_delay; // Don't re-schedule twice
     }
     else if ((retry >= 6) && (retry <= 9))
     {
@@ -263,11 +266,12 @@ bool rdcp_callback_cad(uint8_t channel, bool cad_busy)
       if (channel == CHANNEL433) { start_receive_433(); } else { start_receive_868(); }
       txq[channel].entries[tx_ongoing[channel]].in_process = false;
       tx_ongoing[channel] = -1;
-      int64_t random_delay = my_random_in_range(3100 * CFG.sf_multiplier, 3500 * CFG.sf_multiplier); // history: 31-35 s
-      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, random_delay, retry);
+      // int64_t random_delay = my_random_in_range(3100 * CFG.sf_multiplier, 3500 * CFG.sf_multiplier); // history: 31-35 s
+      int64_t my_delay = 3 * SECONDS_TO_MILLISECONDS + 50 * CFG.relay_identifier * CFG.sf_multiplier;
+      snprintf(buf, INFOLEN, "INFO: Rescheduling CHANNEL%d by %" PRId64 " ms due to %d. CAD retry", channel == CHANNEL433 ? 433:868, my_delay, retry);
       serial_writeln(buf);
-      rdcp_txqueue_reschedule(channel, -random_delay);
-      if (CFEst[channel] < my_millis() + random_delay) CFEst[channel] = my_millis() + random_delay; // Don't re-schedule twice
+      rdcp_txqueue_reschedule(channel, 0 - my_delay);
+      if (CFEst[channel] < my_millis() + my_delay) CFEst[channel] = my_millis() + my_delay; // Don't re-schedule twice
     }
     else if (retry >= 15)
     {

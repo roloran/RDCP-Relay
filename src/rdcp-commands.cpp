@@ -83,15 +83,15 @@ void rdcp_pass_response_to_scheduler(uint8_t channel, bool no_larger_delay=false
     */
     // int64_t random_delay = 0 - my_random_in_range(2000 * CFG.sf_multiplier, 3000 * CFG.sf_multiplier); // history: 2-5 s, last: 9-10 s
 
-    int64_t my_delay = -10 * SECONDS_TO_MILLISECONDS * CFG.sf_multiplier; // base delay of 10 seconds (* sf_multiplier) 
+    int64_t my_delay = -20 * SECONDS_TO_MILLISECONDS * CFG.sf_multiplier; // base delay of 20 seconds (* sf_multiplier) 
     if (channel == CHANNEL433)
-    { // delay 2-3 seconds (* sf_multiplier) based on own relay identifier
-      my_delay -= CFG.sf_multiplier * (2 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier);
+    { // delay minimally based on own relay identifier
+      my_delay -= CFG.sf_multiplier * 100 * CFG.relay_identifier;
     }
     else 
     {
-      // delay 7-8 seconds (* sf_multiplier) based on own relay identifier
-      my_delay -= CFG.sf_multiplier * (7 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier);
+      // delay additional 4 base seconds on 868 MHz to give the 433 MHz a headstart
+      my_delay -= CFG.sf_multiplier * (4 * SECONDS_TO_MILLISECONDS + 100 * CFG.relay_identifier);
     }
 
     if (no_larger_delay)
@@ -885,7 +885,8 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     uint16_t actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
-    int64_t random_delay = 0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    //0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    int64_t my_delay = 0 - (100 * CFG.sf_multiplier); // send very timely on 433 MHz channel free
     uint8_t data_for_scheduler[INFOLEN];
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++)
@@ -894,7 +895,7 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     /* Send on both channels in case we have an HQ in our 868 MHz range */
     /* First, 433 MHz channel. */
     rdcp_txqueue_add(CHANNEL433, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
-      IMPORTANT, NOFORCEDTX, TX_CALLBACK_CIRE, random_delay);
+      IMPORTANT, NOFORCEDTX, TX_CALLBACK_CIRE, my_delay);
 
     /* Second, 868 MHz channel. Header fields need to be adjusted. */
     rdcp_response.header.relay1 = RDCP_HEADER_RELAY_MAGIC_NONE;
@@ -908,13 +909,14 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
     actual_crc = crc16(data_for_crc, RDCP_HEADER_SIZE - RDCP_CRC_SIZE + rdcp_response.header.rdcp_payload_length);
     rdcp_response.header.checksum = actual_crc;
 
-    random_delay = 0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    // 0 - my_random_in_range(1000 * CFG.sf_multiplier, 2000 * CFG.sf_multiplier);
+    my_delay = 0 - (3 * SECONDS_TO_MILLISECONDS * CFG.sf_multiplier); // send after headstart for 433 MHz channel
     memcpy(&data_for_scheduler, &rdcp_response.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rdcp_response.header.rdcp_payload_length; i++) 
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rdcp_response.payload.data[i];
 
     rdcp_txqueue_add(CHANNEL868, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
-      IMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
+      IMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, my_delay);
 
     return;
 }

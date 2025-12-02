@@ -47,9 +47,9 @@ void rdcp_beacon_send(uint8_t channel, int32_t beacon_number)
     memcpy(&data_for_scheduler, &rm.header, RDCP_HEADER_SIZE);
     for (int i=0; i < rm.header.rdcp_payload_length; i++) 
         data_for_scheduler[i + RDCP_HEADER_SIZE] = rm.payload.data[i];
-    int64_t random_delay = 0 - random(0,2000);
+    int64_t my_delay = 0 - (1 * SECONDS_TO_MILLISECONDS + 100 * (CFG.relay_identifier + 1)) * CFG.sf_multiplier;
     rdcp_txqueue_add(channel, data_for_scheduler, RDCP_HEADER_SIZE + rm.header.rdcp_payload_length,
-      NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, random_delay);
+      NOTIMPORTANT, NOFORCEDTX, TX_CALLBACK_NONE, my_delay);
 
     return;
 }

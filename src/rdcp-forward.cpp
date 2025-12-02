@@ -112,7 +112,8 @@ void rdcp_forward_schedule(int add_random_delay)
         if (add_random_delay == FORWARD_DELAY_SHORT)
         { // used as EP
           // delay long enough to have a good chance to start distributing on 433 MHz channel first
-          forced_time = 0 - my_random_in_range(2000, 5000); // 2 to 5 seconds
+          // forced_time = 0 - my_random_in_range(2000, 5000); // 2 to 5 seconds
+          forced_time = -4000; // fixed value for 433 MHz channel headstart
         }
         else if (add_random_delay == FORWARD_DELAY_PROPORTIONAL)
         { // used as non-EP
