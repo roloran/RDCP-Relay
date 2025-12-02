@@ -23,7 +23,7 @@ struct txqueue_entry {
 };
   
 /// Keep the TX Queue small on purpose. We don't want single devices to block the channel for too long.
-#define MAX_TXQUEUE_ENTRIES 64
+#define MAX_TXQUEUE_ENTRIES 32
   
 /**
   * Data structure for the overall TX Queue.
@@ -46,8 +46,8 @@ struct txaheadqueue_entry {
   bool waiting = false;                         //< message is still waiting to be sent
 };
   
-/// The length of the TX Ahead Queue is larger than the length of the TX Queue. Still, less queued messages is better.
-#define MAX_TXAHEADQUEUE_ENTRIES 16
+/// The length of the TX Ahead Queue is kept to a reasonable minimum as this queue is currently not in use
+#define MAX_TXAHEADQUEUE_ENTRIES 4
   
 /**
   * Data structure for the overall TX Ahead Queue.

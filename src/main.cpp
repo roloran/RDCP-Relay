@@ -136,7 +136,7 @@ void loop()
         serial_writeln(info);
         old_min_free_heap = min_free_heap;
         old_free_heap = free_heap;
-        if (free_heap < 32768)
+        if (free_heap < 8192)
         {
           serial_writeln("ERROR: OUT OF MEMORY - restarting as countermeasure");
           delay(5 * SECONDS_TO_MILLISECONDS);

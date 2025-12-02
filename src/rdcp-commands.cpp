@@ -891,7 +891,13 @@ void rdcp_send_cire(uint8_t subtype, uint16_t refnr, char *content)
 
 void rdcp_command_fetch_from_neighbor(void)
 {
-  serial_writeln("INFO: Preparing to fetch from neighbor");
+  if (!CFG.fetch_enabled)
+  {
+    serial_writeln("INFO: Fetching is disabled, skipping FETCH ALL procedure");
+    return;
+  }
+
+  serial_writeln("INFO: Preparing to fetch from neighbor (FETCH ALL)");
 
   uint16_t my_latest = RDCP_OA_REFNR_SPECIAL_ZERO;
   for (int i=0; i < MAX_STORED_MSGS; i++)
