@@ -180,7 +180,7 @@ void rdcp_cmd_send_da_status_response(bool unsolicited = false)
             }
         }
         // if ((neighbors[i].sender >= RDCP_ADDRESS_BBKDA_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND))
-        if (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND) // include HQ devices
+        if ((neighbors[i].sender >= RDCP_ADDRESS_HQ_LOWERBOUND) && (neighbors[i].sender < RDCP_ADDRESS_MG_LOWERBOUND)) // include HQ devices
         {
             if (!neighbors[i].counted)
             {
