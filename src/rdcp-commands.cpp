@@ -97,6 +97,7 @@ void rdcp_pass_response_to_scheduler(uint8_t channel, bool no_larger_delay=false
     if (no_larger_delay)
     { // if larger delays have been disabled, use a minimum delay based on relay identifier
         my_delay = -100 * (1 + CFG.relay_identifier);
+        if (channel == CHANNEL868) my_delay -= 4 * SECONDS_TO_MILLISECONDS; // allow for 433 MHz headstart
     }
 
     rdcp_txqueue_add(channel, data_for_scheduler, RDCP_HEADER_SIZE + rdcp_response.header.rdcp_payload_length,
@@ -712,7 +713,7 @@ void rdcp_check_heartbeat(void)
         rdcp_response.header.relay2 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_response.header.relay3 = RDCP_HEADER_RELAY_MAGIC_NONE;
         rdcp_prepare_response_header(true); // re-use sequence number from 433 MHz channel message
-        rdcp_pass_response_to_scheduler(CHANNEL868);
+        rdcp_pass_response_to_scheduler(CHANNEL868, true);
     }
 
     return;
