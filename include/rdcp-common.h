@@ -357,6 +357,8 @@ struct tracked_propagation_cycle {
 #define RDCP_MSGTYPE_SIGNATURE               0x30
 #define RDCP_MSGTYPE_HEARTBEAT               0x31
 #define RDCP_MSGTYPE_RTC                     0x32
+
+#define RDCP_MSGTYPE_TUNNEL                  0x40
   
 /*
  * Subtypes for OFFICIAL ANNOUNCEMENTs
