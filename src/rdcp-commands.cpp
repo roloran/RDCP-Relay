@@ -358,6 +358,22 @@ void rdcp_cmd_timestamp(void)
     /*
         We don't need the timestamp ourselves, only the overall RDCP Infrastructure status.
     */
+    if (CFG.infrastructure_status != status)
+    { // Infrastructure status change
+      if (CFG.infrastructure_status == RDCP_INFRASTRUCTURE_MODE_NONCRISIS)
+      { // switch from non-crisis to any crisis mode
+        serial_writeln("INFO: Dropping memories based on switch from non-crisis to crisis mode");
+        rdcp_memory_forget();
+      }
+      else 
+      { // switch from any crisis mode, forget memories if target mode is non-crisis
+        if (status == RDCP_INFRASTRUCTURE_MODE_NONCRISIS) 
+        {
+            rdcp_memory_forget();
+            serial_writeln("INFO: Dropping memories based on switch from crisis to non-crisis mode");
+        }
+      }
+    }
     CFG.infrastructure_status = status;
 
     return;
@@ -373,8 +389,25 @@ void rdcp_derive_infrastructure_status_from_oa(void)
     {
         /* RDCP v0.4 OAs have a subheader, and thus the OA subtype is the first byte of the RDCP Payload */
         uint8_t oatype = rdcp_msg_in.payload.data[0];
+        uint8_t old_infrastructure_mode = CFG.infrastructure_status;
         if (oatype == RDCP_MSGTYPE_OA_SUBTYPE_NONCRISIS)  CFG.infrastructure_status = RDCP_INFRASTRUCTURE_MODE_NONCRISIS;
         if (oatype == RDCP_MSGTYPE_OA_SUBTYPE_CRISIS_TXT) CFG.infrastructure_status = RDCP_INFRASTRUCTURE_MODE_CRISIS;
+        if (CFG.infrastructure_status != old_infrastructure_mode)
+        {
+            if (old_infrastructure_mode == RDCP_INFRASTRUCTURE_MODE_NONCRISIS)
+            {
+                serial_writeln("INFO: Dropping memories based on switch from non-crisis to crisis mode");
+                rdcp_memory_forget();
+            }
+            else 
+            {
+                if (CFG.infrastructure_status == RDCP_INFRASTRUCTURE_MODE_NONCRISIS)
+                {
+                    rdcp_memory_forget();
+                    serial_writeln("INFO: Dropping memories based on switch from crisis to non-crisis mode");
+                }
+            }
+        }
     }
     return;
 }
